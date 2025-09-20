@@ -1,7 +1,7 @@
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { ExtendedClient, BotEvent } from '../types';
-import { Logger } from '../utils/logger';
+import { ExtendedClient, BotEvent } from '@/types';
+import { Logger } from '@/utils/logger';
 
 /**
  * Load all events from the events directory.

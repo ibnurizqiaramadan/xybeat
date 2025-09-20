@@ -1,9 +1,9 @@
 import { REST, Routes } from 'discord.js';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { config } from './config';
-import { Command } from './types';
-import { Logger } from './utils/logger';
+import { config } from '@/config';
+import { Command } from '@/types';
+import { Logger } from '@/utils/logger';
 
 /**
  * Deploy slash commands to Discord API.

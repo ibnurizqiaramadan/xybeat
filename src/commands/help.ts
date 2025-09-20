@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, CommandInteraction, EmbedBuilder } from 'discord.js';
-import { Command, ExtendedClient } from '../types';
+import { Command, ExtendedClient } from '@/types';
 
 const command: Command = {
   data: new SlashCommandBuilder().setName('help').setDescription('Shows all available commands'),

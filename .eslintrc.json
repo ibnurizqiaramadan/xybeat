@@ -4,10 +4,7 @@
     "node": true,
     "es2022": true
   },
-  "extends": [
-    "eslint:recommended",
-    "google"
-  ],
+  "extends": ["eslint:recommended", "google"],
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module"
@@ -21,40 +18,19 @@
         "argsIgnorePattern": "^_"
       }
     ],
-    "indent": [
-      "error",
-      2
-    ],
+    "indent": ["error", 2],
     "max-len": [
       "error",
       {
         "code": 100
       }
     ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "semi": [
-      "error",
-      "always"
-    ],
-    "comma-dangle": [
-      "error",
-      "always-multiline"
-    ],
-    "object-curly-spacing": [
-      "error",
-      "always"
-    ],
-    "array-bracket-spacing": [
-      "error",
-      "never"
-    ],
-    "space-before-function-paren": [
-      "error",
-      "never"
-    ],
+    "quotes": ["error", "single"],
+    "semi": ["error", "always"],
+    "comma-dangle": ["error", "always-multiline"],
+    "object-curly-spacing": ["error", "always"],
+    "array-bracket-spacing": ["error", "never"],
+    "space-before-function-paren": ["error", "never"],
     "keyword-spacing": [
       "error",
       {
@@ -65,18 +41,13 @@
   },
   "overrides": [
     {
-      "files": [
-        "*.ts",
-        "*.tsx"
-      ],
+      "files": ["*.ts", "*.tsx"],
       "parser": "@typescript-eslint/parser",
       "parserOptions": {
         "ecmaVersion": "latest",
         "sourceType": "module"
       },
-      "plugins": [
-        "@typescript-eslint"
-      ],
+      "plugins": ["@typescript-eslint"],
       "rules": {
         "no-unused-vars": "off",
         "@typescript-eslint/no-unused-vars": [
@@ -86,40 +57,19 @@
           }
         ],
         "@typescript-eslint/no-explicit-any": "warn",
-        "indent": [
-          "error",
-          2
-        ],
+        "indent": ["error", 2],
         "max-len": [
           "error",
           {
             "code": 100
           }
         ],
-        "quotes": [
-          "error",
-          "single"
-        ],
-        "semi": [
-          "error",
-          "always"
-        ],
-        "comma-dangle": [
-          "error",
-          "always-multiline"
-        ],
-        "object-curly-spacing": [
-          "error",
-          "always"
-        ],
-        "array-bracket-spacing": [
-          "error",
-          "never"
-        ],
-        "space-before-function-paren": [
-          "error",
-          "never"
-        ],
+        "quotes": ["error", "single"],
+        "semi": ["error", "always"],
+        "comma-dangle": ["error", "always-multiline"],
+        "object-curly-spacing": ["error", "always"],
+        "array-bracket-spacing": ["error", "never"],
+        "space-before-function-paren": ["error", "never"],
         "keyword-spacing": [
           "error",
           {
@@ -144,8 +94,5 @@
       }
     }
   ],
-  "ignorePatterns": [
-    "dist/",
-    "node_modules/"
-  ]
+  "ignorePatterns": ["dist/", "node_modules/"]
 }

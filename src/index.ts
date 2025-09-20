@@ -1,9 +1,9 @@
 import { Client, GatewayIntentBits } from 'discord.js';
-import { ExtendedClient } from './types';
-import { config } from './config';
-import { loadCommands } from './handlers/commandHandler';
-import { loadEvents } from './handlers/eventHandler';
-import { Logger } from './utils/logger';
+import { ExtendedClient } from '@/types';
+import { config } from '@/config';
+import { loadCommands } from '@/handlers/commandHandler';
+import { loadEvents } from '@/handlers/eventHandler';
+import { Logger } from '@/utils/logger';
 
 // Create a new client instance
 const client = new Client({

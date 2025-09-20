@@ -1,8 +1,8 @@
 import { Collection } from 'discord.js';
 import { readdirSync } from 'fs';
 import { join } from 'path';
-import { Command, ExtendedClient } from '../types';
-import { Logger } from '../utils/logger';
+import { Command, ExtendedClient } from '@/types';
+import { Logger } from '@/utils/logger';
 
 /**
  * Load all commands from the commands directory.
