@@ -10,7 +10,7 @@ A powerful Discord music bot built with TypeScript and discord.js v14, featuring
 - 📊 **Real-Time Progress Tracking** - Live download progress with visual indicators
 - 💾 **Smart MP3 Caching** - Instant playback for previously downloaded songs
 - 🔍 **Advanced YouTube Search** - Search by song name, artist, or paste any YouTube URL
-- 📋 **Comprehensive Playlist Support** - Handle YouTube playlists, mixes, and radio stations
+- 📋 **Comprehensive Playlist Support** - Handle YouTube playlists of any size, mixes, and radio stations
 - ⏯️ **Full Playback Controls** - Play, pause, resume, skip, stop, and queue management
 - 📄 **Interactive Queue Management** - Paginated display with navigation buttons
 - 🎛️ **Voice Channel Integration** - Smart auto-join/leave with optimal audio quality
@@ -186,7 +186,7 @@ npm run deploy-commands
 | Input Type | Support | Description |
 |------------|---------|-------------|
 | **🔗 Direct YouTube URLs** | ✅ Full | Single video links with instant recognition |
-| **📋 YouTube Playlists** | ✅ Full | Entire playlists (up to 50 videos) |
+| **📋 YouTube Playlists** | ✅ Full | Complete playlists with all available videos |
 | **📻 YouTube Mixes/Radio** | ✅ Smart Fallback | Automatically extracts the current video |
 | **🔍 Search Queries** | ✅ Full | Search by song name, artist, or keywords |
 | **🔀 Mixed URLs** | ✅ Smart | Videos with playlist parameters |
@@ -326,7 +326,7 @@ If you encounter issues with the music player:
 #### Playlist Issues
 
 - **Private playlists**: Bot will extract single video if playlist is private
-- **Large playlists**: Limited to 50 videos to prevent spam
+- **Large playlists**: Processes all videos in playlist (no artificial limits)
 - **Mixed URLs**: Bot automatically handles video URLs with playlist parameters
 
 #### Audio Quality Issues
@@ -334,8 +334,6 @@ If you encounter issues with the music player:
 - **Format 18**: Used for optimal quality/compatibility balance
 - **MP3 conversion**: All audio standardized to MP3 format
 - **Local caching**: Files stored locally for faster subsequent access
-
-For detailed troubleshooting history, see \`YTDL_FIX.md\` and \`DAVE_FIX.md\`.
 
 ## 🚀 What Makes XyBeat Special
 
@@ -365,7 +363,7 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Real-Time Progress Tracking** - Live download progress with visual indicators
 - ✅ **Auto Command Registration** - Commands automatically deployed on bot startup
 - ✅ **Progress Cleanup** - Progress embeds automatically disappear when complete
-- ✅ **Enhanced Playlist Support** - Smart fallbacks for YouTube mixes and radio
+- ✅ **Enhanced Playlist Support** - Smart fallbacks for YouTube mixes and radio, unlimited playlist size
 - ✅ **Redis Queue Persistence** - Optional queue storage across bot restarts by voice channel
 - ✅ **Crash Recovery System** - Resume currently playing song after bot crashes/restarts
 - ✅ **Separated Stop/Clear Commands** - Stop preserves queue, clear removes all songs
