@@ -18,8 +18,8 @@ const command: Command = {
 
     const embed = new EmbedBuilder()
       .setColor(0x5865f2) // Discord blurple color
-      .setTitle('🔗 Invite Me to Your Server!')
-      .setDescription('Click the button below or use the link to add me to your server.')
+      .setTitle('🎵 Invite XyBeat to Your Server!')
+      .setDescription('Add XyBeat to your server for high-quality music streaming! Click the link below to get started.')
       .addFields(
         {
           name: '📋 Invite Link',

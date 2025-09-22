@@ -272,6 +272,21 @@ Ensure your bot has these permissions in Discord servers:
 - **Speak** - To play audio in voice channels
 - **View Channels** - To see voice and text channels
 
+### Adding Invite Button to Bot Profile
+
+To add a clickable invite button on your bot's Discord profile:
+
+1. **Go to Discord Developer Portal** → Your Application → General Information
+2. **Scroll down to "Install Link" section**
+3. **Set the install link to:**
+   ```
+   https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_ID&permissions=8590983168&scope=bot%20applications.commands
+   ```
+4. **Replace `YOUR_BOT_ID`** with your actual bot's client ID
+5. **Save changes**
+
+This will add an "Invite [BotName]" button on your bot's profile that users can click to invite the bot to their servers.
+
 ### Music Player Issues
 
 If you encounter issues with the music player:
@@ -350,6 +365,7 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Queue Shuffle** - Randomize song order with Fisher-Yates algorithm, preserves currently playing
 - ✅ **Complete Leave Command** - Full disconnect with queue clearing and data cleanup
 - ✅ **Smart Voice Reconnection** - Automatic reconnection when resuming after auto-disconnect
+- ✅ **Dynamic Bot Presence** - Shows server count and helpful status information
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
 
