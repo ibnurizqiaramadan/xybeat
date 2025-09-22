@@ -37,4 +37,6 @@ export interface MusicManager {
   resumeFromCrash: (guildId: string) => Promise<boolean>;
   disconnectVoice: (guildId: string) => Promise<void>;
   isVoiceChannelEmpty: (guildId: string) => boolean;
+  shuffleQueue: (guildId: string) => Promise<number>;
+  leaveVoice: (guildId: string) => Promise<void>;
 }

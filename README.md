@@ -148,6 +148,16 @@ npm run deploy-commands
 | **⏭️ `/skip`** | **Skip to next song** - Move to the next track in queue | Skips current song and plays next |
 | **⏹️ `/stop`** | **Stop music** - Stop playback but preserve queue for resuming | Stops music without clearing queue |
 | **🗑️ `/clear`** | **Clear queue** - Remove all songs from the queue | Clears the entire music queue |
+| **🔀 `/shuffle`** | **Shuffle queue** - Randomize the order of songs in queue | Randomly reorders all queued songs |
+| **👋 `/leave`** | **Leave voice channel** - Disconnect and clear all music data | Completely exits voice and removes all data |
+
+#### 🎛️ **Stop vs Clear vs Leave Commands**
+
+| Command | Action | Queue | Voice Connection | Redis Data | Use Case |
+|---------|--------|-------|------------------|------------|----------|
+| **🛑 `/stop`** | Stop playback only | ✅ **Preserved** | ✅ **Stays connected** | ✅ **Kept** | Temporary pause, resumable |
+| **🗑️ `/clear`** | Clear queue only | ❌ **Cleared** | ✅ **Stays connected** | ❌ **Removed** | Fresh start, keep connection |
+| **👋 `/leave`** | Full disconnect | ❌ **Cleared** | ❌ **Disconnected** | ❌ **Removed** | Complete exit from voice |
 
 ### 🛠️ Utility Commands
 
@@ -187,6 +197,7 @@ npm run deploy-commands
 - **⚡ Instant Replay** - Cached files play immediately on repeat
 - **🔄 Progress Cleanup** - Progress indicators automatically disappear when complete
 - **🎛️ Smart Voice Management** - Auto-pause when alone, auto-disconnect after 5 minutes
+- **🎛️ Multiple Disconnect Options** - Stop (preserve queue), Clear (remove songs), Leave (full disconnect)
 
 ## Development
 
@@ -336,6 +347,8 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Crash Recovery System** - Resume currently playing song after bot crashes/restarts
 - ✅ **Separated Stop/Clear Commands** - Stop preserves queue, clear removes all songs
 - ✅ **Smart Auto-Pause & Leave** - Automatically pause when alone, disconnect after 5min timeout
+- ✅ **Queue Shuffle** - Randomize song order with Fisher-Yates algorithm, preserves currently playing
+- ✅ **Complete Leave Command** - Full disconnect with queue clearing and data cleanup
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
 

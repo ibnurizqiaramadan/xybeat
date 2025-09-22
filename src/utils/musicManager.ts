@@ -572,6 +572,86 @@ class MusicManagerImpl implements MusicManager {
 
     return nonBotMembers.size === 0;
   }
+
+  /**
+   * Shuffle the queue using Fisher-Yates algorithm
+   * @param {string} guildId - The guild ID.
+   * @return {number} Number of songs shuffled
+   */
+  async shuffleQueue(guildId: string): Promise<number> {
+    const queue = this.getQueue(guildId);
+    if (!queue || queue.songs.length <= 1) {
+      return 0; // No queue or only one song, nothing to shuffle
+    }
+
+    // If music is currently playing, we want to keep the current song at position 0
+    // and shuffle only the remaining songs
+    const startIndex = queue.playing ? 1 : 0;
+    const songsToShuffle = queue.songs.slice(startIndex);
+
+    if (songsToShuffle.length <= 1) {
+      return 0; // Nothing to shuffle
+    }
+
+    // Fisher-Yates shuffle algorithm
+    for (let i = songsToShuffle.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const songI = songsToShuffle[i];
+      const songJ = songsToShuffle[j];
+      if (songI && songJ) {
+        songsToShuffle[i] = songJ;
+        songsToShuffle[j] = songI;
+      }
+    }
+
+    // Reconstruct the queue
+    if (queue.playing && queue.songs[0]) {
+      // Keep current playing song at front, shuffle the rest
+      queue.songs = [queue.songs[0], ...songsToShuffle];
+    } else {
+      // Shuffle all songs
+      queue.songs = songsToShuffle;
+    }
+
+    // Save shuffled queue to Redis
+    await this.saveQueueToRedis(guildId, queue.voiceChannel.id);
+
+    Logger.info(`Shuffled ${songsToShuffle.length} songs in guild ${guildId}`);
+    return songsToShuffle.length;
+  }
+
+  /**
+   * Leave voice channel and completely clear all queue data
+   * @param {string} guildId - The guild ID.
+   */
+  async leaveVoice(guildId: string): Promise<void> {
+    const queue = this.getQueue(guildId);
+    if (!queue) {
+      return; // No queue to clear
+    }
+
+    // Stop any playing music
+    if (queue.player) {
+      queue.player.stop();
+    }
+
+    // Disconnect from voice channel
+    if (queue.connection) {
+      queue.connection.destroy();
+    }
+
+    // Remove progress callback if any
+    this.removeProgressCallback(guildId);
+
+    // Clear all Redis data for this queue
+    await redisManager.deleteQueue(guildId, queue.voiceChannel.id);
+    await redisManager.deletePlayingState(guildId, queue.voiceChannel.id);
+
+    // Remove the queue from memory
+    this.queues.delete(guildId);
+
+    Logger.info(`Left voice channel and cleared all data for guild ${guildId}`);
+  }
 }
 
 export const musicManager = new MusicManagerImpl();
