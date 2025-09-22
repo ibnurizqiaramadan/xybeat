@@ -159,7 +159,7 @@ For other systems, please install yt-dlp and FFmpeg according to your OS package
 - \`npm start\` - Start the built bot
 - \`npm run deploy-commands\` - Deploy slash commands to Discord
 - \`npm run lint\` - Run ESLint and fix issues
-- \`npm run format\` - Format code with Prettier
+- \`npm run format\` - Format and fix code with ESLint
 
 ### Project Structure
 
@@ -270,7 +270,7 @@ This provides maximum reliability, faster subsequent playback, and better format
 1. Fork the repository
 2. Create a feature branch
 3. Make your changes
-4. Run linting and formatting: \`npm run lint && npm run format\`
+4. Run linting and formatting: \`npm run format\` (includes linting with auto-fix)
 5. Test your changes
 6. Submit a pull request
 
