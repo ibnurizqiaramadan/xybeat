@@ -9,8 +9,8 @@ const command: Command = {
 
   async execute(interaction: CommandInteraction) {
     // Permission value for required bot permissions
-    // Use Slash Commands + Send Messages + View Channels + Read Message History + Embed Links
-    const permissionValue = '2147555328';
+    // View Channels + Send Messages + Embed Links + Read Message History + Connect + Speak + Use VAD + Use Application Commands + Add Reactions + Attach Files
+    const permissionValue = '2184301632';
 
     const inviteUrl = `https://discord.com/api/oauth2/authorize?client_id=${
       config.clientId
@@ -29,21 +29,29 @@ const command: Command = {
         {
           name: '🔒 Required Permissions',
           value: [
-            '• Use Slash Commands',
-            '• Send Messages',
             '• View Channels',
-            '• Read Message History',
+            '• Send Messages',
             '• Embed Links',
+            '• Read Message History',
+            '• Connect (Voice)',
+            '• Speak (Voice)',
+            '• Use Voice Activity',
+            '• Use Application Commands',
+            '• Add Reactions',
+            '• Attach Files',
           ].join('\n'),
           inline: true,
         },
         {
           name: '⚡ Features',
           value: [
-            '• `/ping` - Check latency',
-            '• `/help` - Show commands',
-            '• `/server` - Server info',
-            '• `/invite` - Get invite link',
+            '• `/play` - Play YouTube music',
+            '• `/queue` - View music queue',
+            '• `/pause` - Pause playback',
+            '• `/resume` - Resume music',
+            '• `/skip` - Skip current song',
+            '• `/shuffle` - Randomize queue',
+            '• `/help` - Show all commands',
           ].join('\n'),
           inline: true,
         },

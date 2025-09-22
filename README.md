@@ -63,23 +63,23 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 ### Installation
 
 1. Clone the repository:
-   \`\`\`bash
+   ```bash
    git clone <repository-url>
    cd xybeat
-   \`\`\`
+   ```
 
 2. Install dependencies:
-   \`\`\`bash
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 3. Copy the environment file and configure it:
-   \`\`\`bash
+   ```bash
    cp .env.example .env
-   \`\`\`
+   ```
 
-4. Edit \`.env\` with your bot configuration:
-   \`\`\`env
+4. Edit `.env` with your bot configuration:
+   ```env
    # Discord Bot Configuration
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_application_id_here
@@ -93,7 +93,7 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
    REDIS_PASSWORD=
    REDIS_DB=0
    REDIS_KEY_PREFIX=xybeat:
-   \`\`\`
+   ```
 
    **Redis Queue Persistence (Optional):**
    - Set `REDIS_ENABLED=true` to enable persistent queue storage
@@ -105,37 +105,48 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 ### Getting Discord Bot Credentials
 
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
-2. Create a new application
+2. Create a new application and give it a name (e.g., "XyBeat")
 3. Go to the "Bot" section and create a bot
-4. **Important**: Under "Privileged Gateway Intents", you may need to enable:
+4. **Important**: Under "Privileged Gateway Intents":
    - ❌ **Presence Intent** - Not required for XyBeat
    - ❌ **Server Members Intent** - Not required for XyBeat  
    - ❌ **Message Content Intent** - Not required for XyBeat (uses slash commands)
-5. Copy the bot token and set it as \`DISCORD_TOKEN\`
-6. Go to the "General Information" section and copy the Application ID as \`CLIENT_ID\`
-7. For development, copy your server ID as \`GUILD_ID\` (right-click server in Discord with Developer Mode enabled)
+5. **Bot Permissions**: When generating invite links, use permission value `2184301632` which includes:
+   - ✅ **View Channels** - See voice and text channels
+   - ✅ **Send Messages** - Send command responses  
+   - ✅ **Embed Links** - Display rich embeds
+   - ✅ **Read Message History** - Context understanding
+   - ✅ **Connect** - Join voice channels
+   - ✅ **Speak** - Play audio in voice channels
+   - ✅ **Use Voice Activity** - Voice connection management
+   - ✅ **Use Application Commands** - Execute slash commands
+   - ✅ **Add Reactions** - For interactive buttons and reactions
+   - ✅ **Attach Files** - For sending file attachments when needed
+6. Copy the bot token and set it as `DISCORD_TOKEN`
+7. Go to the "General Information" section and copy the Application ID as `CLIENT_ID`
+8. For development, copy your server ID as `GUILD_ID` (right-click server in Discord with Developer Mode enabled)
 
 ### Running XyBeat
 
 1. Start the music bot in development mode:
-   \`\`\`bash
+   ```bash
    npm run dev
-   \`\`\`
+   ```
 
 2. Or build and run in production:
-   \`\`\`bash
+   ```bash
    npm run build
    npm start
-   \`\`\`
+   ```
 
 **Note:** Commands are automatically registered when the bot starts. No manual deployment needed!
 
 #### Manual Command Deployment (Optional)
 
 If you need to manually deploy commands (for troubleshooting):
-\`\`\`bash
+```bash
 npm run deploy-commands
-\`\`\`
+```
 
 ## 🎵 Music Commands
 
@@ -203,16 +214,16 @@ npm run deploy-commands
 
 ### Scripts
 
-- \`npm run dev\` - Start bot in development mode with hot reload
-- \`npm run build\` - Build TypeScript to JavaScript
-- \`npm start\` - Start the built bot
-- \`npm run deploy-commands\` - Deploy slash commands to Discord
-- \`npm run lint\` - Run ESLint and fix issues
-- \`npm run format\` - Format and fix code with ESLint
+- `npm run dev` - Start bot in development mode with hot reload
+- `npm run build` - Build TypeScript to JavaScript
+- `npm start` - Start the built bot
+- `npm run deploy-commands` - Deploy slash commands to Discord
+- `npm run lint` - Run ESLint and fix issues
+- `npm run format` - Format and fix code with ESLint
 
 ### Project Structure
 
-\`\`\`
+```
 src/
 ├── commands/ # Slash commands
 ├── events/ # Discord event handlers
@@ -221,19 +232,19 @@ src/
 ├── utils/ # Utility functions and classes
 ├── config/ # Configuration management
 └── index.ts # Main bot entry point
-\`\`\`
+```
 
 ### Adding New Commands
 
-1. Create a new file in \`src/commands/\` following the existing pattern
-2. Export a command object with \`data\` and \`execute\` properties
-3. Run \`npm run deploy-commands\` to register the new command
+1. Create a new file in `src/commands/` following the existing pattern
+2. Export a command object with `data` and `execute` properties
+3. Run `npm run deploy-commands` to register the new command
 4. Restart the bot
 
 ### Adding New Events
 
-1. Create a new file in \`src/events/\` following the existing pattern
-2. Export an event object with \`name\`, \`execute\`, and optionally \`once\` properties
+1. Create a new file in `src/events/` following the existing pattern
+2. Export an event object with `name`, `execute`, and optionally `once` properties
 3. Restart the bot to load the new event
 
 ## Bot Permissions
@@ -280,7 +291,7 @@ To add a clickable invite button on your bot's Discord profile:
 2. **Scroll down to "Install Link" section**
 3. **Set the install link to:**
    ```
-   https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_ID&permissions=8590983168&scope=bot%20applications.commands
+   https://discord.com/api/oauth2/authorize?client_id=YOUR_BOT_ID&permissions=2184301632&scope=bot%20applications.commands
    ```
 4. **Replace `YOUR_BOT_ID`** with your actual bot's client ID
 5. **Save changes**
@@ -294,24 +305,21 @@ If you encounter issues with the music player:
 #### Common Solutions
 
 1. **Check system dependencies**:
-   \`\`\`bash
-
+   ```bash
    # Verify yt-dlp is installed and accessible
-
    /snap/bin/yt-dlp --version
 
    # Verify FFmpeg is installed
-
    /usr/bin/ffmpeg -version
-   \`\`\`
+   ```
 
 2. **Check voice permissions**: Ensure bot has Connect and Speak permissions in voice channels
 
-3. **Verify file permissions**: Ensure bot can write to \`~/music-bot/mp3/\` directory
-   \`\`\`bash
+3. **Verify file permissions**: Ensure bot can write to `~/music-bot/mp3/` directory
+   ```bash
    mkdir -p ~/music-bot/mp3
    chmod 755 ~/music-bot/mp3
-   \`\`\`
+   ```
 
 4. **Check bot logs**: Look for specific error messages in console output
 
