@@ -349,6 +349,7 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Smart Auto-Pause & Leave** - Automatically pause when alone, disconnect after 5min timeout
 - ✅ **Queue Shuffle** - Randomize song order with Fisher-Yates algorithm, preserves currently playing
 - ✅ **Complete Leave Command** - Full disconnect with queue clearing and data cleanup
+- ✅ **Smart Voice Reconnection** - Automatic reconnection when resuming after auto-disconnect
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
 

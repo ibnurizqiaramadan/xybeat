@@ -170,6 +170,12 @@ class MusicManagerImpl implements MusicManager {
       return;
     }
 
+    // Check if bot is still connected to voice channel
+    if (!queue.connection) {
+      Logger.warn(`No voice connection for guild ${guildId}, cannot play music`);
+      return;
+    }
+
     const song = queue.songs.shift();
     if (!song) return;
 
@@ -411,6 +417,12 @@ class MusicManagerImpl implements MusicManager {
         displayAvatarURL: () => playingState.currentSong.requestedBy.displayAvatarURL,
       } as MinimalUser,
     } as Song;
+
+    // Check if bot is still connected to voice channel
+    if (!queue.connection) {
+      Logger.debug(`No voice connection for guild ${guildId} during crash recovery, need to reconnect first`);
+      return false;
+    }
 
     // Check if this song is still in the queue (it should be the first one)
     if (queue.songs.length > 0 && queue.songs[0] && queue.songs[0].url === currentSong.url) {

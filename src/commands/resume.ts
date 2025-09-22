@@ -1,6 +1,8 @@
 import { SlashCommandBuilder, CommandInteraction, GuildMember, MessageFlags } from 'discord.js';
+import { joinVoiceChannel } from '@discordjs/voice';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
+import { Logger } from '@/utils/logger';
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -71,11 +73,34 @@ const command: Command = {
 
     // If queue exists, check if it's paused and can be resumed
     if (queue.player && !queue.playing) {
-      // Try crash recovery first
+      // Check if bot is connected to voice channel
+      if (!queue.connection) {
+        // Bot was disconnected, need to reconnect first
+        try {
+          const connection = joinVoiceChannel({
+            channelId: voiceChannel.id,
+            guildId: interaction.guild.id,
+            adapterCreator: interaction.guild.voiceAdapterCreator,
+          });
+
+          queue.connection = connection;
+          connection.subscribe(queue.player);
+
+          Logger.info(`Reconnected to voice channel ${voiceChannel.name} for resume in guild ${interaction.guild.id}`);
+        } catch (error) {
+          await interaction.reply({
+            content: '❌ Failed to reconnect to voice channel!',
+            flags: MessageFlags.Ephemeral,
+          });
+          return;
+        }
+      }
+
+      // Try crash recovery first (now that we have voice connection)
       const resumed = await musicManager.resumeFromCrash(interaction.guild.id);
       if (resumed) {
         await interaction.reply({
-          content: '🔄 Recovered and resumed from crash!',
+          content: '🔄 Recovered and resumed from previous session!',
         });
         return;
       }
