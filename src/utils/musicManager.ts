@@ -6,7 +6,7 @@ import {
   VoiceConnectionStatus,
   generateDependencyReport,
 } from '@discordjs/voice';
-import { downloadYouTubeToMp3 } from '@/utils/ytdlp';
+import { downloadYouTubeToMp3, DownloadProgress } from '@/utils/ytdlp';
 import { MusicQueue, Song, MusicManager } from '@/types/music';
 import { VoiceBasedChannel } from 'discord.js';
 import { Logger } from '@/utils/logger';
@@ -17,6 +17,8 @@ import { createReadStream, existsSync } from 'fs';
  */
 class MusicManagerImpl implements MusicManager {
   public queues = new Map<string, MusicQueue>();
+  // eslint-disable-next-line func-call-spacing
+  private progressCallbacks = new Map<string, (progress: DownloadProgress) => void>();
 
   /**
    * Initialize the music manager.
@@ -118,6 +120,8 @@ class MusicManagerImpl implements MusicManager {
         queue.player.stop();
       }
       this.queues.delete(guildId);
+      // Also remove progress callback
+      this.removeProgressCallback(guildId);
       Logger.info(`Deleted music queue for guild ${guildId}`);
     }
   }
@@ -145,7 +149,15 @@ class MusicManagerImpl implements MusicManager {
 
       // Download MP3 file first using native yt-dlp
       Logger.info(`Downloading MP3 for: ${song.title}`);
-      const downloadResult = await downloadYouTubeToMp3(song.url);
+      const progressCallback = this.progressCallbacks.get(guildId);
+      Logger.debug(`Progress callback ${progressCallback ? 'found' : 'NOT found'} for guild: ${guildId}`);
+      const downloadResult = await downloadYouTubeToMp3(song.url, progressCallback);
+
+      // Remove progress callback after download completes
+      if (progressCallback) {
+        Logger.debug(`Removing progress callback after download complete for guild: ${guildId}`);
+        this.removeProgressCallback(guildId);
+      }
 
       // Ensure file exists before attempting to play
       if (!existsSync(downloadResult.filePath)) {
@@ -211,6 +223,24 @@ class MusicManagerImpl implements MusicManager {
       } as unknown as import('discord.js').MessageCreateOptions);
       this.playNext(guildId);
     }
+  }
+
+  /**
+   * Set progress callback for a guild
+   * @param {string} guildId - The guild ID
+   * @param {Function} callback - Progress callback function
+   */
+  setProgressCallback(guildId: string, callback: (progress: DownloadProgress) => void): void {
+    Logger.debug(`Setting progress callback for guild: ${guildId}`);
+    this.progressCallbacks.set(guildId, callback);
+  }
+
+  /**
+   * Remove progress callback for a guild
+   * @param {string} guildId - The guild ID
+   */
+  removeProgressCallback(guildId: string): void {
+    this.progressCallbacks.delete(guildId);
   }
 
   /**

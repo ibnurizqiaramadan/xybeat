@@ -27,10 +27,16 @@ const event: BotEvent = {
         ephemeral: true,
       };
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
+      try {
+        if (interaction.replied) {
+          await interaction.followUp(errorMessage);
+        } else if (interaction.deferred) {
+          await interaction.editReply(errorMessage);
+        } else {
+          await interaction.reply(errorMessage);
+        }
+      } catch (responseError) {
+        Logger.error('Failed to send error response:', responseError as Error);
       }
     }
   },

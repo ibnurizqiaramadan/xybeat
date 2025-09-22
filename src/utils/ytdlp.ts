@@ -3,6 +3,7 @@ import { Readable } from 'stream';
 import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
+import { Logger } from './logger';
 
 export interface YtdlpStreamResult {
   stream: Readable;
@@ -12,6 +13,14 @@ export interface YtdlpStreamResult {
 export interface YtdlpDownloadResult {
   filePath: string;
   videoId: string;
+}
+
+export interface DownloadProgress {
+  percentage: number;
+  downloaded: string;
+  total: string;
+  speed: string;
+  eta: string;
 }
 
 export interface VideoInfo {
@@ -131,6 +140,33 @@ function formatDuration(seconds: number): string {
 }
 
 /**
+ * Parse download progress from yt-dlp stderr output
+ * @param {string} data - Raw stderr data from yt-dlp
+ * @return {DownloadProgress | null} Parsed progress or null if not a progress line
+ */
+function parseDownloadProgress(data: string): DownloadProgress | null {
+  // Match yt-dlp download progress format:
+  // [download]  54.2% of  144.12MiB at    3.65MiB/s ETA 00:18
+  const progressMatch = data.match(
+    /\[download\]\s+(\d+\.?\d*)%\s+of\s+(\S+)\s+at\s+(\S+)\s+ETA\s+(\S+)/,
+  );
+
+  if (progressMatch && progressMatch[1] && progressMatch[2] && progressMatch[3] && progressMatch[4]) {
+    return {
+      percentage: parseFloat(progressMatch[1]),
+      downloaded: ((parseFloat(progressMatch[1]) / 100) *
+        parseFloat(progressMatch[2].replace(/[^\d.]/g, ''))).toFixed(1) +
+        progressMatch[2].replace(/[\d.]/g, ''),
+      total: progressMatch[2],
+      speed: progressMatch[3],
+      eta: progressMatch[4],
+    };
+  }
+
+  return null;
+}
+
+/**
  * Get playlist information using yt-dlp
  * @param {string} url - YouTube playlist URL
  * @return {Promise<VideoInfo[]>} Array of video information from playlist
@@ -170,12 +206,18 @@ export async function getPlaylistInfo(url: string): Promise<VideoInfo[]> {
         // If playlist extraction fails, try to extract just the single video
         if (
           errorOutput.includes('playlist does not exist') ||
-          errorOutput.includes('Unable to recognize playlist')
+          errorOutput.includes('Unable to recognize playlist') ||
+          errorOutput.includes('This playlist type is unviewable') ||
+          errorOutput.includes('playlist type is unviewable')
         ) {
           // Extract the single video ID and return it as a single-item playlist
           const videoMatch = url.match(/[?&]v=([^&]+)/);
           if (videoMatch && videoMatch[1]) {
             const videoId = videoMatch[1];
+            Logger.warn(
+              `Playlist extraction failed, falling back to single video: ${videoId}. ` +
+              `Error: ${errorOutput.trim()}`,
+            );
             // Get info for the single video
             getSingleVideoAsPlaylist(videoId).then(resolve).catch(reject);
             return;
@@ -216,6 +258,7 @@ export async function getPlaylistInfo(url: string): Promise<VideoInfo[]> {
           const videoMatch = url.match(/[?&]v=([^&]+)/);
           if (videoMatch && videoMatch[1]) {
             const videoId = videoMatch[1];
+            Logger.warn(`No videos found in playlist, falling back to single video: ${videoId}`);
             getSingleVideoAsPlaylist(videoId).then(resolve).catch(reject);
             return;
           }
@@ -329,9 +372,13 @@ export async function createYtdlpAudioStream(url: string): Promise<YtdlpStreamRe
 /**
  * Download and convert YouTube video to MP3 using yt-dlp and ffmpeg
  * @param {string} url - YouTube video URL
+ * @param {Function} progressCallback - Optional callback for download progress
  * @return {Promise<YtdlpDownloadResult>} File path and video ID
  */
-export async function downloadYouTubeToMp3(url: string): Promise<YtdlpDownloadResult> {
+export async function downloadYouTubeToMp3(
+  url: string,
+  progressCallback?: (progress: DownloadProgress) => void,
+): Promise<YtdlpDownloadResult> {
   try {
     const videoId = extractVideoId(url);
     const musicDir = join(homedir(), 'music-bot', 'mp3');
@@ -343,10 +390,23 @@ export async function downloadYouTubeToMp3(url: string): Promise<YtdlpDownloadRe
     // Check if file already exists
     try {
       await fs.access(outputPath);
-      console.log(`File already exists: ${outputPath}`);
+      Logger.info(`File already cached: ${outputPath}`);
+
+      // If file exists, simulate instant progress for callback if provided
+      if (progressCallback) {
+        progressCallback({
+          percentage: 100,
+          downloaded: 'Cached',
+          total: 'Cached',
+          speed: 'Instant',
+          eta: '00:00',
+        });
+      }
+
       return { filePath: outputPath, videoId };
     } catch {
       // File doesn't exist, proceed with download
+      Logger.info(`File not cached, starting download: ${outputPath}`);
     }
 
     return new Promise((resolve, reject) => {
@@ -376,7 +436,17 @@ export async function downloadYouTubeToMp3(url: string): Promise<YtdlpDownloadRe
       });
 
       ytdlp.stderr.on('data', (data) => {
-        console.error(`yt-dlp stderr: ${data}`);
+        const dataStr = data.toString();
+        console.error(`yt-dlp stderr: ${dataStr}`);
+
+        // Parse and report download progress if callback provided
+        if (progressCallback) {
+          const progress = parseDownloadProgress(dataStr);
+          if (progress) {
+            Logger.debug(`Progress update: ${progress.percentage}% - ${progress.speed}`);
+            progressCallback(progress);
+          }
+        }
       });
 
       ffmpeg.stderr.on('data', (data) => {
