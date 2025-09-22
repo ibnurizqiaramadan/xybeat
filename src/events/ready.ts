@@ -5,7 +5,8 @@ import { Logger } from '@/utils/logger';
 const event: BotEvent = {
   name: Events.ClientReady,
   once: true,
-  async execute(client: ExtendedClient) {
+  async execute(...args: unknown[]) {
+    const [client] = args as [ExtendedClient];
     Logger.info(`Ready! Logged in as ${client.user?.tag}`);
     Logger.info(`Bot is in ${client.guilds.cache.size} servers`);
 

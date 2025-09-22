@@ -4,7 +4,8 @@ import { Logger } from '@/utils/logger';
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
-  async execute(interaction: Interaction) {
+  async execute(...args: unknown[]) {
+    const [interaction] = args as [Interaction];
     if (!interaction.isChatInputCommand()) return;
 
     const client = interaction.client as ExtendedClient;

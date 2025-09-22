@@ -7,11 +7,12 @@ const command: Command = {
     .setDescription('Replies with bot latency information'),
 
   async execute(interaction: CommandInteraction) {
-    const sent = await interaction.reply({
+    await interaction.reply({
       content: 'Pinging...',
-      fetchReply: true,
       ephemeral: true,
     });
+
+    const sent = await interaction.fetchReply();
 
     const embed = new EmbedBuilder()
       .setColor(0x0099ff)
