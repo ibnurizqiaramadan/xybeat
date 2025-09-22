@@ -21,9 +21,13 @@
   "author": "xyrus10",
   "license": "MIT",
   "dependencies": {
+    "@discordjs/opus": "^0.10.0",
+    "@discordjs/voice": "^0.19.0",
+    "@snazzah/davey": "^0.1.6",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
-    "module-alias": "^2.2.3"
+    "module-alias": "^2.2.3",
+    "play-dl": "^1.9.7"
   },
   "devDependencies": {
     "@types/module-alias": "^2.0.4",
