@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, EmbedBuilder, MessageFlags } from 'discord.js';
 import { Command } from '@/types';
 
 const command: Command = {
@@ -9,7 +9,7 @@ const command: Command = {
   async execute(interaction: CommandInteraction) {
     await interaction.reply({
       content: 'Pinging...',
-      ephemeral: true,
+      flags: MessageFlags.Ephemeral,
     });
 
     const sent = await interaction.fetchReply();

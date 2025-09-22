@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 
@@ -13,7 +13,7 @@ const command: Command = {
     if (!member?.voice.channel) {
       await interaction.reply({
         content: '❌ You need to be in a voice channel to shuffle the queue!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -23,7 +23,7 @@ const command: Command = {
     if (!queue) {
       await interaction.reply({
         content: '❌ No music queue found! Use `/play` to start playing music first.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -32,7 +32,7 @@ const command: Command = {
     if (queue.songs.length <= 1) {
       await interaction.reply({
         content: '❌ Need at least 2 songs in queue to shuffle!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -73,7 +73,7 @@ const command: Command = {
       } else {
         await interaction.reply({
           content: '❌ Failed to shuffle the queue. Please try again later.',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
       }
     }

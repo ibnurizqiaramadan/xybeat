@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction, GuildMember } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, GuildMember, MessageFlags } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 
@@ -11,7 +11,7 @@ const command: Command = {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ This command can only be used in a server!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -22,7 +22,7 @@ const command: Command = {
     if (!voiceChannel) {
       await interaction.reply({
         content: '❌ You need to be in a voice channel to use music commands!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -56,14 +56,14 @@ const command: Command = {
         } else {
           await interaction.reply({
             content: '❌ No music queue or crashed session found to resume!',
-            ephemeral: true,
+            flags: MessageFlags.Ephemeral,
           });
           return;
         }
       } catch (error) {
         await interaction.reply({
           content: '❌ Failed to restore music session!',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }
@@ -88,12 +88,12 @@ const command: Command = {
     } else if (queue.playing) {
       await interaction.reply({
         content: '❌ Music is already playing!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     } else {
       await interaction.reply({
         content: '❌ No paused music to resume. Use `/play` to start playing music.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },

@@ -4,6 +4,7 @@ import {
   EmbedBuilder,
   GuildMember,
   ChatInputCommandInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
@@ -107,7 +108,7 @@ const command: Command = {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ This command can only be used in a server!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -118,7 +119,7 @@ const command: Command = {
     if (!voiceChannel) {
       await interaction.reply({
         content: '❌ You need to be in a voice channel to play music!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -127,7 +128,7 @@ const command: Command = {
     if (!permissions?.has(['Connect', 'Speak'])) {
       await interaction.reply({
         content: '❌ I need permissions to connect and speak in your voice channel!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

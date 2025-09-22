@@ -1,4 +1,4 @@
-import { Events, Interaction } from 'discord.js';
+import { Events, Interaction, MessageFlags } from 'discord.js';
 import { BotEvent, ExtendedClient } from '@/types';
 import { Logger } from '@/utils/logger';
 
@@ -22,18 +22,21 @@ const event: BotEvent = {
     } catch (error) {
       Logger.error(`Error executing command ${interaction.commandName}:`, error as Error);
 
-      const errorMessage = {
-        content: 'There was an error while executing this command!',
-        ephemeral: true,
-      };
-
       try {
         if (interaction.replied) {
-          await interaction.followUp(errorMessage);
+          await interaction.followUp({
+            content: 'There was an error while executing this command!',
+            flags: MessageFlags.Ephemeral,
+          });
         } else if (interaction.deferred) {
-          await interaction.editReply(errorMessage);
+          await interaction.editReply({
+            content: 'There was an error while executing this command!',
+          });
         } else {
-          await interaction.reply(errorMessage);
+          await interaction.reply({
+            content: 'There was an error while executing this command!',
+            flags: MessageFlags.Ephemeral,
+          });
         }
       } catch (responseError) {
         Logger.error('Failed to send error response:', responseError as Error);

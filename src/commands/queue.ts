@@ -7,6 +7,7 @@ import {
   ButtonStyle,
   ComponentType,
   ButtonInteraction,
+  MessageFlags,
 } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
@@ -144,7 +145,7 @@ const command: Command = {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ This command can only be used in a server!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -153,7 +154,7 @@ const command: Command = {
     if (!queue || queue.songs.length === 0) {
       await interaction.reply({
         content: '❌ The music queue is empty!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -187,7 +188,7 @@ const command: Command = {
       if (buttonInteraction.user.id !== interaction.user.id) {
         await buttonInteraction.reply({
           content: '❌ Only the user who used the command can navigate the queue!',
-          ephemeral: true,
+          flags: MessageFlags.Ephemeral,
         });
         return;
       }

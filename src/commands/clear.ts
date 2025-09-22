@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, CommandInteraction, GuildMember } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction, GuildMember, MessageFlags } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 
@@ -11,7 +11,7 @@ const command: Command = {
     if (!interaction.guild) {
       await interaction.reply({
         content: '❌ This command can only be used in a server!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -22,7 +22,7 @@ const command: Command = {
     if (!voiceChannel) {
       await interaction.reply({
         content: '❌ You need to be in a voice channel to use music commands!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -31,7 +31,7 @@ const command: Command = {
     if (!queue) {
       await interaction.reply({
         content: '❌ There is no music queue to clear!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -39,7 +39,7 @@ const command: Command = {
     if (queue.songs.length === 0) {
       await interaction.reply({
         content: '❌ The queue is already empty!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }

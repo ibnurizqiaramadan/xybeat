@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, MessageFlags } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 
@@ -13,7 +13,7 @@ const command: Command = {
     if (!member?.voice.channel) {
       await interaction.reply({
         content: '❌ You need to be in a voice channel to use this command!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -23,7 +23,7 @@ const command: Command = {
     if (!botVoiceChannel) {
       await interaction.reply({
         content: '❌ I\'m not connected to any voice channel!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -32,7 +32,7 @@ const command: Command = {
     if (member.voice.channel.id !== botVoiceChannel.id) {
       await interaction.reply({
         content: '❌ You need to be in the same voice channel as me!',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
       return;
     }
@@ -68,7 +68,7 @@ const command: Command = {
 
       await interaction.reply({
         content: '❌ Failed to leave voice channel. Please try again later.',
-        ephemeral: true,
+        flags: MessageFlags.Ephemeral,
       });
     }
   },
