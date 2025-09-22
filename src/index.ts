@@ -7,14 +7,11 @@ import { Logger } from '@/utils/logger';
 import { deployCommands } from '@/deploy-commands';
 import { redisManager } from '@/utils/redis';
 
-// Create a new client instance
+// Create a new client instance with minimal required intents for music bot
 const client = new Client({
   intents: [
-    GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMessages,
-    GatewayIntentBits.MessageContent,
-    GatewayIntentBits.GuildMembers,
-    GatewayIntentBits.GuildVoiceStates,
+    GatewayIntentBits.Guilds, // Required for slash commands
+    GatewayIntentBits.GuildVoiceStates, // Required for voice channel detection
   ],
 }) as ExtendedClient;
 

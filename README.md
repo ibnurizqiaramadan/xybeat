@@ -107,9 +107,13 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 1. Go to the [Discord Developer Portal](https://discord.com/developers/applications)
 2. Create a new application
 3. Go to the "Bot" section and create a bot
-4. Copy the bot token and set it as \`DISCORD_TOKEN\`
-5. Go to the "General Information" section and copy the Application ID as \`CLIENT_ID\`
-6. For development, copy your server ID as \`GUILD_ID\` (right-click server in Discord with Developer Mode enabled)
+4. **Important**: Under "Privileged Gateway Intents", you may need to enable:
+   - ❌ **Presence Intent** - Not required for XyBeat
+   - ❌ **Server Members Intent** - Not required for XyBeat  
+   - ❌ **Message Content Intent** - Not required for XyBeat (uses slash commands)
+5. Copy the bot token and set it as \`DISCORD_TOKEN\`
+6. Go to the "General Information" section and copy the Application ID as \`CLIENT_ID\`
+7. For development, copy your server ID as \`GUILD_ID\` (right-click server in Discord with Developer Mode enabled)
 
 ### Running XyBeat
 
@@ -232,6 +236,29 @@ The bot requires the following permissions:
 - Speak (for voice channels)
 
 ## Troubleshooting
+
+### Bot Connection Issues
+
+#### "Used disallowed intents" Error
+
+If you get this error, check your Discord Developer Portal settings:
+
+1. **Go to Discord Developer Portal** → Your Application → Bot
+2. **Check "Privileged Gateway Intents"** section:
+   - ❌ **DO NOT enable** "Presence Intent" (not needed)
+   - ❌ **DO NOT enable** "Server Members Intent" (not needed) 
+   - ❌ **DO NOT enable** "Message Content Intent" (not needed for slash commands)
+3. **XyBeat only needs basic intents** which are enabled by default
+4. **If error persists**, the bot token might be invalid or expired
+
+#### Permission Issues
+
+Ensure your bot has these permissions in Discord servers:
+- **Send Messages** - For command responses
+- **Use Slash Commands** - For command execution  
+- **Connect** - To join voice channels
+- **Speak** - To play audio in voice channels
+- **View Channels** - To see voice and text channels
 
 ### Music Player Issues
 
