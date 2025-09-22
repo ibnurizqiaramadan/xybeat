@@ -1,5 +1,6 @@
 import { SlashCommandBuilder, CommandInteraction, EmbedBuilder } from 'discord.js';
 import { Command, ExtendedClient } from '@/types';
+import { formatUptime } from '@/utils/timeFormat';
 
 const command: Command = {
   data: new SlashCommandBuilder().setName('help').setDescription('Shows all available commands'),
@@ -42,9 +43,7 @@ const command: Command = {
       },
       {
         name: '⚡ Performance',
-        value: `• **Ping:** ${client.ws.ping}ms\n• **Uptime:** ${Math.floor(
-          client.uptime! / 1000,
-        )}s`,
+        value: `• **Ping:** ${client.ws.ping}ms\n• **Uptime:** ${formatUptime(client.uptime!)}`,
         inline: true,
       },
     );

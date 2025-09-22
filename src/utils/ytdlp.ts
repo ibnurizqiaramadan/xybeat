@@ -4,6 +4,7 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { Logger } from './logger';
+import { formatDuration } from './timeFormat';
 
 export interface YtdlpStreamResult {
   stream: Readable;
@@ -123,21 +124,6 @@ export async function searchYouTube(query: string): Promise<VideoInfo | null> {
   });
 }
 
-/**
- * Format duration from seconds to MM:SS or HH:MM:SS
- * @param {number} seconds - Duration in seconds
- * @return {string} Formatted duration
- */
-function formatDuration(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
-
-  if (hours > 0) {
-    return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${minutes}:${secs.toString().padStart(2, '0')}`;
-}
 
 /**
  * Parse download progress from yt-dlp stderr output
