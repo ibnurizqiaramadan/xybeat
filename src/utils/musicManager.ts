@@ -31,6 +31,13 @@ interface PlayingState {
   timestamp: number; // When this state was saved
 }
 
+// Type for the minimal User interface we need for deserialized songs
+interface MinimalUser {
+  id: string;
+  username: string;
+  displayAvatarURL: () => string;
+}
+
 /**
  * Implementation of the music manager for handling voice connections and audio playback.
  */
@@ -306,7 +313,7 @@ class MusicManagerImpl implements MusicManager {
   private async loadQueueFromRedis(guildId: string, voiceChannelId: string): Promise<Song[]> {
     const queueData = await redisManager.loadQueue(guildId, voiceChannelId);
     if (queueData && Array.isArray(queueData)) {
-      return queueData.map((songData: any) => ({
+      return (queueData as SerializedSong[]).map((songData) => ({
         title: songData.title,
         url: songData.url,
         duration: songData.duration,
@@ -315,8 +322,8 @@ class MusicManagerImpl implements MusicManager {
           id: songData.requestedBy.id,
           username: songData.requestedBy.username,
           displayAvatarURL: () => songData.requestedBy.displayAvatarURL,
-        } as any,
-      }));
+        } as MinimalUser,
+      } as Song));
     }
     return [];
   }
@@ -402,8 +409,8 @@ class MusicManagerImpl implements MusicManager {
         id: playingState.currentSong.requestedBy.id,
         username: playingState.currentSong.requestedBy.username,
         displayAvatarURL: () => playingState.currentSong.requestedBy.displayAvatarURL,
-      } as any,
-    };
+      } as MinimalUser,
+    } as Song;
 
     // Check if this song is still in the queue (it should be the first one)
     if (queue.songs.length > 0 && queue.songs[0] && queue.songs[0].url === currentSong.url) {

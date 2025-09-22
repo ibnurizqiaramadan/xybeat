@@ -24,7 +24,11 @@ class RedisManager {
     try {
       this.keyPrefix = process.env.REDIS_KEY_PREFIX || 'xybeat:';
 
-      const redisOptions: any = {
+      const redisOptions: {
+        socket: { host: string; port: number };
+        database: number;
+        password?: string;
+      } = {
         socket: {
           host: process.env.REDIS_HOST || 'localhost',
           port: parseInt(process.env.REDIS_PORT || '6379'),
