@@ -1,7 +1,7 @@
 {
-  "name": "xyrus10-bot",
-  "version": "1.0.0",
-  "description": "A Discord bot built with TypeScript and discord.js v14",
+  "name": "xybeat",
+  "version": "2.0.0",
+  "description": "A powerful Discord music bot with native yt-dlp integration and real-time progress tracking",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && tsc-alias",
@@ -14,9 +14,13 @@
   },
   "keywords": [
     "discord",
-    "bot",
+    "music-bot",
+    "youtube",
+    "yt-dlp",
     "typescript",
-    "discord.js"
+    "discord.js",
+    "music-player",
+    "playlist"
   ],
   "author": "xyrus10",
   "license": "MIT",
@@ -26,8 +30,7 @@
     "@snazzah/davey": "^0.1.6",
     "discord.js": "^14.14.1",
     "dotenv": "^16.3.1",
-    "module-alias": "^2.2.3",
-    "play-dl": "^1.9.7"
+    "module-alias": "^2.2.3"
   },
   "devDependencies": {
     "@types/module-alias": "^2.0.4",
