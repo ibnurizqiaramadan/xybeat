@@ -186,6 +186,7 @@ npm run deploy-commands
 - **💾 Intelligent Caching** - Files stored in `~/music-bot/mp3/` directory
 - **⚡ Instant Replay** - Cached files play immediately on repeat
 - **🔄 Progress Cleanup** - Progress indicators automatically disappear when complete
+- **🎛️ Smart Voice Management** - Auto-pause when alone, auto-disconnect after 5 minutes
 
 ## Development
 
@@ -334,6 +335,7 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Redis Queue Persistence** - Optional queue storage across bot restarts by voice channel
 - ✅ **Crash Recovery System** - Resume currently playing song after bot crashes/restarts
 - ✅ **Separated Stop/Clear Commands** - Stop preserves queue, clear removes all songs
+- ✅ **Smart Auto-Pause & Leave** - Automatically pause when alone, disconnect after 5min timeout
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
 

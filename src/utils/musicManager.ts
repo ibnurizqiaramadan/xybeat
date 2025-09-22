@@ -483,6 +483,8 @@ class MusicManagerImpl implements MusicManager {
     const queue = this.getQueue(guildId);
     if (queue?.player) {
       queue.player.pause();
+      queue.playing = false;
+      Logger.debug(`Paused music in guild ${guildId}`);
     }
   }
 
@@ -494,6 +496,8 @@ class MusicManagerImpl implements MusicManager {
     const queue = this.getQueue(guildId);
     if (queue?.player) {
       queue.player.unpause();
+      queue.playing = true;
+      Logger.debug(`Resumed music in guild ${guildId}`);
     }
   }
 
@@ -529,6 +533,44 @@ class MusicManagerImpl implements MusicManager {
       await redisManager.deleteQueue(guildId, queue.voiceChannel.id);
       await redisManager.deletePlayingState(guildId, queue.voiceChannel.id);
     }
+  }
+
+  /**
+   * Disconnect from voice channel but preserve queue for later resume
+   * @param {string} guildId - The guild ID.
+   */
+  async disconnectVoice(guildId: string): Promise<void> {
+    const queue = this.getQueue(guildId);
+    if (queue?.connection) {
+      // Pause any playing music
+      if (queue.playing && queue.player) {
+        queue.player.pause();
+        queue.playing = false;
+      }
+
+      // Disconnect from voice
+      queue.connection.destroy();
+      queue.connection = null;
+
+      Logger.info(`Disconnected from voice channel in guild ${guildId}, queue preserved`);
+    }
+  }
+
+  /**
+   * Check if voice channel is empty (no non-bot members)
+   * @param {string} guildId - The guild ID.
+   * @return {boolean} True if voice channel is empty
+   */
+  isVoiceChannelEmpty(guildId: string): boolean {
+    const queue = this.getQueue(guildId);
+    if (!queue?.connection) {
+      return true; // No connection means effectively empty
+    }
+
+    const voiceChannel = queue.voiceChannel;
+    const nonBotMembers = voiceChannel.members.filter((member) => !member.user.bot);
+
+    return nonBotMembers.size === 0;
   }
 }
 

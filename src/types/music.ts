@@ -35,4 +35,6 @@ export interface MusicManager {
   clearQueue: (guildId: string) => Promise<void>;
   stop: (guildId: string) => Promise<void>;
   resumeFromCrash: (guildId: string) => Promise<boolean>;
+  disconnectVoice: (guildId: string) => Promise<void>;
+  isVoiceChannelEmpty: (guildId: string) => boolean;
 }
