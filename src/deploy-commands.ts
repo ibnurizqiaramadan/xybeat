@@ -7,8 +7,9 @@ import { Logger } from '@/utils/logger';
 
 /**
  * Deploy slash commands to Discord API.
+ * @param {boolean} _autoRun - Whether this is being run automatically
  */
-async function deployCommands(): Promise<void> {
+export async function deployCommands(_autoRun: boolean = false): Promise<void> {
   const commands = [];
   const commandsPath = join(__dirname, 'commands');
 

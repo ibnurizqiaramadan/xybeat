@@ -36,6 +36,7 @@ A powerful Discord music bot built with TypeScript and discord.js v14, featuring
 - A Discord application and bot token
 - **yt-dlp** binary installed (`/snap/bin/yt-dlp`)
 - **FFmpeg** binary installed (`/usr/bin/ffmpeg`)
+- **Redis server** (optional) - For persistent queue storage across bot restarts
 
 ### System Dependencies
 
@@ -48,12 +49,16 @@ sudo snap install yt-dlp
 # Install FFmpeg
 sudo apt update && sudo apt install ffmpeg
 
+# Install Redis (optional, for persistent queues)
+sudo apt install redis-server
+
 # Verify installations
 yt-dlp --version
 ffmpeg -version
+redis-server --version
 ```
 
-For other systems, please install yt-dlp and FFmpeg according to your OS package manager.
+For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS package manager.
 
 ### Installation
 
@@ -75,11 +80,27 @@ For other systems, please install yt-dlp and FFmpeg according to your OS package
 
 4. Edit \`.env\` with your bot configuration:
    \`\`\`env
+   # Discord Bot Configuration
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_application_id_here
    GUILD_ID=your_guild_id_here_for_development
    NODE_ENV=development
+
+   # Redis Configuration (Optional)
+   REDIS_ENABLED=false
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_PASSWORD=
+   REDIS_DB=0
+   REDIS_KEY_PREFIX=xybeat:
    \`\`\`
+
+   **Redis Queue Persistence (Optional):**
+   - Set `REDIS_ENABLED=true` to enable persistent queue storage
+   - Queues are saved by voice channel and persist across bot restarts
+   - **Crash Recovery**: Currently playing song state is saved and resumed after crashes
+   - **Auto-cleanup**: Playing states expire after 30 minutes of inactivity
+   - Configure Redis connection details as needed
 
 ### Getting Discord Bot Credentials
 
@@ -119,9 +140,10 @@ npm run deploy-commands
 | **🎵 `/play`** | **Play music from YouTube** - Supports URLs, playlists, search queries, and YouTube mixes | `/play query: Bohemian Rhapsody`<br>`/play query: https://youtube.com/watch?v=...`<br>`/play query: https://youtube.com/playlist?list=...` |
 | **📋 `/queue`** | **View music queue** - Interactive paginated display with navigation controls | Shows current queue with song details and position |
 | **⏸️ `/pause`** | **Pause playback** - Temporarily stop the current song | Pauses the currently playing track |
-| **▶️ `/resume`** | **Resume playback** - Continue paused song | Resumes the paused track |
+| **▶️ `/resume`** | **Resume playback or recover from crash** - Continue paused song or restore crashed session | Resumes paused track or recovers from bot crash |
 | **⏭️ `/skip`** | **Skip to next song** - Move to the next track in queue | Skips current song and plays next |
-| **⏹️ `/stop`** | **Stop music and clear queue** - Completely stop playback and clear all songs | Stops music and clears entire queue |
+| **⏹️ `/stop`** | **Stop music** - Stop playback but preserve queue for resuming | Stops music without clearing queue |
+| **🗑️ `/clear`** | **Clear queue** - Remove all songs from the queue | Clears the entire music queue |
 
 ### 🛠️ Utility Commands
 
@@ -282,6 +304,9 @@ XyBeat uses a sophisticated multi-layer approach:
 - ✅ **Auto Command Registration** - Commands automatically deployed on bot startup
 - ✅ **Progress Cleanup** - Progress embeds automatically disappear when complete
 - ✅ **Enhanced Playlist Support** - Smart fallbacks for YouTube mixes and radio
+- ✅ **Redis Queue Persistence** - Optional queue storage across bot restarts by voice channel
+- ✅ **Crash Recovery System** - Resume currently playing song after bot crashes/restarts
+- ✅ **Separated Stop/Clear Commands** - Stop preserves queue, clear removes all songs
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
 

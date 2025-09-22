@@ -199,7 +199,7 @@ const command: Command = {
             });
             return;
           }
-          queue = musicManager.createQueue(
+          queue = await musicManager.createQueue(
             interaction.guild.id,
             voiceChannel,
             interaction.channel as unknown as import('@/types/music').MinimalTextChannel,
@@ -383,7 +383,7 @@ const command: Command = {
             });
             return;
           }
-          queue = musicManager.createQueue(
+          queue = await musicManager.createQueue(
             interaction.guild.id,
             voiceChannel,
             interaction.channel as unknown as import('@/types/music').MinimalTextChannel,

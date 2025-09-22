@@ -4,6 +4,8 @@ import { config } from '@/config';
 import { loadCommands } from '@/handlers/commandHandler';
 import { loadEvents } from '@/handlers/eventHandler';
 import { Logger } from '@/utils/logger';
+import { deployCommands } from '@/deploy-commands';
+import { redisManager } from '@/utils/redis';
 
 // Create a new client instance
 const client = new Client({
@@ -23,6 +25,12 @@ async function main(): Promise<void> {
   try {
     Logger.info('Starting bot...');
 
+    // Initialize Redis connection
+    await redisManager.initialize();
+
+    // Deploy commands automatically
+    await deployCommands(true);
+
     // Load commands and events
     await loadCommands(client);
     await loadEvents(client);
@@ -36,14 +44,16 @@ async function main(): Promise<void> {
 }
 
 // Handle process termination gracefully
-process.on('SIGINT', () => {
+process.on('SIGINT', async() => {
   Logger.info('Received SIGINT, shutting down gracefully...');
+  await redisManager.disconnect();
   client.destroy();
   process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async() => {
   Logger.info('Received SIGTERM, shutting down gracefully...');
+  await redisManager.disconnect();
   client.destroy();
   process.exit(0);
 });

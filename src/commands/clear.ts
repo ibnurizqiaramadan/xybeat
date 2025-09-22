@@ -4,8 +4,8 @@ import { musicManager } from '@/utils/musicManager';
 
 const command: Command = {
   data: new SlashCommandBuilder()
-    .setName('stop')
-    .setDescription('Stop playing music (queue will be preserved)'),
+    .setName('clear')
+    .setDescription('Clear the entire music queue'),
 
   async execute(interaction: CommandInteraction) {
     if (!interaction.guild) {
@@ -30,16 +30,25 @@ const command: Command = {
     const queue = musicManager.getQueue(interaction.guild.id);
     if (!queue) {
       await interaction.reply({
-        content: '❌ There is no music queue!',
+        content: '❌ There is no music queue to clear!',
         ephemeral: true,
       });
       return;
     }
 
-    await musicManager.stop(interaction.guild.id);
+    if (queue.songs.length === 0) {
+      await interaction.reply({
+        content: '❌ The queue is already empty!',
+        ephemeral: true,
+      });
+      return;
+    }
+
+    const queueLength = queue.songs.length;
+    await musicManager.clearQueue(interaction.guild.id);
 
     await interaction.reply({
-      content: '⏹️ Stopped playing music. Queue preserved - use `/play` to resume or `/clear` to clear the queue.',
+      content: `🗑️ Cleared the queue! Removed ${queueLength} song${queueLength === 1 ? '' : 's'}.`,
     });
   },
 };

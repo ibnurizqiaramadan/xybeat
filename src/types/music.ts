@@ -29,7 +29,10 @@ export interface MusicManager {
     guildId: string,
     voiceChannel: VoiceBasedChannel,
     textChannel: MinimalTextChannel
-  ) => MusicQueue;
+  ) => Promise<MusicQueue>;
   getQueue: (guildId: string) => MusicQueue | undefined;
   deleteQueue: (guildId: string) => void;
+  clearQueue: (guildId: string) => Promise<void>;
+  stop: (guildId: string) => Promise<void>;
+  resumeFromCrash: (guildId: string) => Promise<boolean>;
 }
