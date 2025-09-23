@@ -39,4 +39,5 @@ export interface MusicManager {
   isVoiceChannelEmpty: (guildId: string) => boolean;
   shuffleQueue: (guildId: string) => Promise<number>;
   leaveVoice: (guildId: string) => Promise<void>;
+  addSongs: (guildId: string, songs: Song[]) => Promise<void>;
 }

@@ -12,6 +12,7 @@ import { VoiceBasedChannel } from 'discord.js';
 import { Logger } from '@/utils/logger';
 import { createReadStream, existsSync } from 'fs';
 import { redisManager } from './redis';
+import { backgroundDownloader } from './backgroundDownloader';
 
 interface SerializedSong {
   title: string;
@@ -467,12 +468,70 @@ class MusicManagerImpl implements MusicManager {
     // Save to Redis if enabled
     await this.saveQueueToRedis(guildId, queue.voiceChannel.id);
 
+    // Trigger background download for all songs in queue
+    // Give higher priority to the next song in queue
+    this.triggerBackgroundDownloads(guildId);
+
     if (!queue.playing && queue.songs.length === 1) {
       // Try to resume from crash first
       const resumed = await this.resumeFromCrash(guildId);
       if (!resumed) {
         await this.playNext(guildId);
       }
+    }
+  }
+
+  /**
+   * Add multiple songs to the queue at once.
+   * @param {string} guildId - The guild ID.
+   * @param {Song[]} songs - The songs to add.
+   */
+  async addSongs(guildId: string, songs: Song[]): Promise<void> {
+    const queue = this.getQueue(guildId);
+    if (!queue) return;
+
+    const wasEmpty = queue.songs.length === 0;
+    queue.songs.push(...songs);
+
+    // Save to Redis if enabled
+    await this.saveQueueToRedis(guildId, queue.voiceChannel.id);
+
+    // Trigger background download for all new songs
+    this.triggerBackgroundDownloads(guildId);
+
+    if (!queue.playing && wasEmpty && queue.songs.length > 0) {
+      // Try to resume from crash first
+      const resumed = await this.resumeFromCrash(guildId);
+      if (!resumed) {
+        await this.playNext(guildId);
+      }
+    }
+  }
+
+  /**
+   * Trigger background downloads for songs in the queue.
+   * @param {string} guildId - The guild ID.
+   */
+  private triggerBackgroundDownloads(guildId: string): void {
+    const queue = this.getQueue(guildId);
+    if (!queue || queue.songs.length === 0) return;
+
+    // Download next 5 songs in queue with priority
+    const songsToDownload = queue.songs.slice(0, 5);
+
+    if (songsToDownload.length > 0) {
+      // First song (next to play) gets highest priority
+      const firstSong = songsToDownload[0];
+      if (firstSong) {
+        backgroundDownloader.addHighPriority(guildId, firstSong, 1);
+      }
+
+      // Rest of the songs get normal priority
+      if (songsToDownload.length > 1) {
+        backgroundDownloader.addToQueue(guildId, songsToDownload.slice(1), 10);
+      }
+
+      Logger.info(`Triggered background downloads for ${songsToDownload.length} songs in guild ${guildId}`);
     }
   }
 
@@ -540,6 +599,9 @@ class MusicManagerImpl implements MusicManager {
       if (queue.player) {
         queue.player.stop();
       }
+
+      // Clear background downloads for this guild
+      backgroundDownloader.clearGuildQueue(guildId);
 
       // Remove both queue and playing state from Redis
       await redisManager.deleteQueue(guildId, queue.voiceChannel.id);
@@ -628,6 +690,9 @@ class MusicManagerImpl implements MusicManager {
     // Save shuffled queue to Redis
     await this.saveQueueToRedis(guildId, queue.voiceChannel.id);
 
+    // Retrigger background downloads with new order
+    this.triggerBackgroundDownloads(guildId);
+
     Logger.info(`Shuffled ${songsToShuffle.length} songs in guild ${guildId}`);
     return songsToShuffle.length;
   }
@@ -654,6 +719,9 @@ class MusicManagerImpl implements MusicManager {
 
     // Remove progress callback if any
     this.removeProgressCallback(guildId);
+
+    // Clear background downloads for this guild
+    backgroundDownloader.clearGuildQueue(guildId);
 
     // Clear all Redis data for this queue
     await redisManager.deleteQueue(guildId, queue.voiceChannel.id);

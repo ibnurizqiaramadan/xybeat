@@ -63,22 +63,26 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd xybeat
    ```
 
 2. Install dependencies:
+
    ```bash
    npm install
    ```
 
 3. Copy the environment file and configure it:
+
    ```bash
    cp .env.example .env
    ```
 
 4. Edit `.env` with your bot configuration:
+
    ```env
    # Discord Bot Configuration
    DISCORD_TOKEN=your_bot_token_here
@@ -96,6 +100,7 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
    ```
 
    **Redis Queue Persistence (Optional):**
+
    - Set `REDIS_ENABLED=true` to enable persistent queue storage
    - Queues are saved by voice channel and persist across bot restarts
    - **Crash Recovery**: Currently playing song state is saved and resumed after crashes
@@ -109,11 +114,11 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 3. Go to the "Bot" section and create a bot
 4. **Important**: Under "Privileged Gateway Intents":
    - ❌ **Presence Intent** - Not required for XyBeat
-   - ❌ **Server Members Intent** - Not required for XyBeat  
+   - ❌ **Server Members Intent** - Not required for XyBeat
    - ❌ **Message Content Intent** - Not required for XyBeat (uses slash commands)
 5. **Bot Permissions**: When generating invite links, use permission value `2184301632` which includes:
    - ✅ **View Channels** - See voice and text channels
-   - ✅ **Send Messages** - Send command responses  
+   - ✅ **Send Messages** - Send command responses
    - ✅ **Embed Links** - Display rich embeds
    - ✅ **Read Message History** - Context understanding
    - ✅ **Connect** - Join voice channels
@@ -129,6 +134,7 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 ### Running XyBeat
 
 1. Start the music bot in development mode:
+
    ```bash
    npm run dev
    ```
@@ -144,52 +150,54 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
 #### Manual Command Deployment (Optional)
 
 If you need to manually deploy commands (for troubleshooting):
+
 ```bash
 npm run deploy-commands
 ```
 
 ## 🎵 Music Commands
 
-| Command | Description | Usage Examples |
-|---------|-------------|----------------|
-| **🎵 `/play`** | **Play music from YouTube** - Supports URLs, playlists, search queries, and YouTube mixes | `/play query: Bohemian Rhapsody`<br>`/play query: https://youtube.com/watch?v=...`<br>`/play query: https://youtube.com/playlist?list=...` |
-| **📋 `/queue`** | **View music queue** - Interactive paginated display with navigation controls | Shows current queue with song details and position |
-| **⏸️ `/pause`** | **Pause playback** - Temporarily stop the current song | Pauses the currently playing track |
-| **▶️ `/resume`** | **Resume playback or recover from crash** - Continue paused song or restore crashed session | Resumes paused track or recovers from bot crash |
-| **⏭️ `/skip`** | **Skip to next song** - Move to the next track in queue | Skips current song and plays next |
-| **⏹️ `/stop`** | **Stop music** - Stop playback but preserve queue for resuming | Stops music without clearing queue |
-| **🗑️ `/clear`** | **Clear queue** - Remove all songs from the queue | Clears the entire music queue |
-| **🔀 `/shuffle`** | **Shuffle queue** - Randomize the order of songs in queue | Randomly reorders all queued songs |
-| **👋 `/leave`** | **Leave voice channel** - Disconnect and clear all music data | Completely exits voice and removes all data |
+| Command           | Description                                                                                 | Usage Examples                                                                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **🎵 `/play`**    | **Play music from YouTube** - Supports URLs, playlists, search queries, and YouTube mixes   | `/play query: Bohemian Rhapsody`<br>`/play query: https://youtube.com/watch?v=...`<br>`/play query: https://youtube.com/playlist?list=...` |
+| **📋 `/queue`**   | **View music queue** - Interactive paginated display with navigation controls               | Shows current queue with song details and position                                                                                         |
+| **⏸️ `/pause`**   | **Pause playback** - Temporarily stop the current song                                      | Pauses the currently playing track                                                                                                         |
+| **▶️ `/resume`**  | **Resume playback or recover from crash** - Continue paused song or restore crashed session | Resumes paused track or recovers from bot crash                                                                                            |
+| **⏭️ `/skip`**    | **Skip to next song** - Move to the next track in queue                                     | Skips current song and plays next                                                                                                          |
+| **⏹️ `/stop`**    | **Stop music** - Stop playback but preserve queue for resuming                              | Stops music without clearing queue                                                                                                         |
+| **🗑️ `/clear`**   | **Clear queue** - Remove all songs from the queue                                           | Clears the entire music queue                                                                                                              |
+| **🔀 `/shuffle`** | **Shuffle queue** - Randomize the order of songs in queue                                   | Randomly reorders all queued songs                                                                                                         |
+| **👋 `/leave`**   | **Leave voice channel** - Disconnect and clear all music data                               | Completely exits voice and removes all data                                                                                                |
 
 #### 🎛️ **Stop vs Clear vs Leave Commands**
 
-| Command | Action | Queue | Voice Connection | Redis Data | Use Case |
-|---------|--------|-------|------------------|------------|----------|
-| **🛑 `/stop`** | Stop playback only | ✅ **Preserved** | ✅ **Stays connected** | ✅ **Kept** | Temporary pause, resumable |
-| **🗑️ `/clear`** | Clear queue only | ❌ **Cleared** | ✅ **Stays connected** | ❌ **Removed** | Fresh start, keep connection |
-| **👋 `/leave`** | Full disconnect | ❌ **Cleared** | ❌ **Disconnected** | ❌ **Removed** | Complete exit from voice |
+| Command         | Action             | Queue            | Voice Connection       | Redis Data     | Use Case                     |
+| --------------- | ------------------ | ---------------- | ---------------------- | -------------- | ---------------------------- |
+| **🛑 `/stop`**  | Stop playback only | ✅ **Preserved** | ✅ **Stays connected** | ✅ **Kept**    | Temporary pause, resumable   |
+| **🗑️ `/clear`** | Clear queue only   | ❌ **Cleared**   | ✅ **Stays connected** | ❌ **Removed** | Fresh start, keep connection |
+| **👋 `/leave`** | Full disconnect    | ❌ **Cleared**   | ❌ **Disconnected**    | ❌ **Removed** | Complete exit from voice     |
 
 ### 🛠️ Utility Commands
 
-| Command | Description |
-|---------|-------------|
-| `/ping` | Check bot latency and response time |
-| `/help` | Show all available commands and bot information |
-| `/server` | Get information about the current server |
-| `/invite` | Get the invite link to add XyBeat to other servers |
+| Command           | Description                                          |
+| ----------------- | ---------------------------------------------------- |
+| `/ping`           | Check bot latency and response time                  |
+| `/help`           | Show all available commands and bot information      |
+| `/server`         | Get information about the current server             |
+| `/invite`         | Get the invite link to add XyBeat to other servers   |
+| `/download-stats` | Show background download statistics and queue status |
 
 ## 🎯 Advanced Features
 
 ### 🎵 Music Input Support
 
-| Input Type | Support | Description |
-|------------|---------|-------------|
-| **🔗 Direct YouTube URLs** | ✅ Full | Single video links with instant recognition |
-| **📋 YouTube Playlists** | ✅ Full | Complete playlists with all available videos |
-| **📻 YouTube Mixes/Radio** | ✅ Smart Fallback | Automatically extracts the current video |
-| **🔍 Search Queries** | ✅ Full | Search by song name, artist, or keywords |
-| **🔀 Mixed URLs** | ✅ Smart | Videos with playlist parameters |
+| Input Type                 | Support           | Description                                  |
+| -------------------------- | ----------------- | -------------------------------------------- |
+| **🔗 Direct YouTube URLs** | ✅ Full           | Single video links with instant recognition  |
+| **📋 YouTube Playlists**   | ✅ Full           | Complete playlists with all available videos |
+| **📻 YouTube Mixes/Radio** | ✅ Smart Fallback | Automatically extracts the current video     |
+| **🔍 Search Queries**      | ✅ Full           | Search by song name, artist, or keywords     |
+| **🔀 Mixed URLs**          | ✅ Smart          | Videos with playlist parameters              |
 
 ### 📊 Queue Management
 
@@ -209,6 +217,17 @@ npm run deploy-commands
 - **🔄 Progress Cleanup** - Progress indicators automatically disappear when complete
 - **🎛️ Smart Voice Management** - Auto-pause when alone, auto-disconnect after 5 minutes
 - **🎛️ Multiple Disconnect Options** - Stop (preserve queue), Clear (remove songs), Leave (full disconnect)
+
+### 🚀 Background Download System
+
+- **⚡ Zero-Wait Playback** - Songs pre-download while music is playing, eliminating queue delays
+- **🎯 Smart Prioritization** - Next song gets highest priority, followed by upcoming 5 songs in queue
+- **⚙️ Concurrent Limits** - Maximum 2 downloads per server, 5 globally to prevent system overload
+- **🔄 Automatic Retry** - Failed downloads retry with exponential backoff up to 3 times
+- **💾 Cache Integration** - Automatically skips songs already downloaded, optimizes bandwidth
+- **📊 Real-time Monitoring** - Track download progress and statistics with `/download-stats`
+- **🧹 Smart Cleanup** - Clears download queue when music queue is cleared or bot leaves voice
+- **🔀 Shuffle Support** - Reorders background downloads when queue is shuffled for optimal experience
 
 ## Development
 
@@ -269,7 +288,7 @@ If you get this error, check your Discord Developer Portal settings:
 1. **Go to Discord Developer Portal** → Your Application → Bot
 2. **Check "Privileged Gateway Intents"** section:
    - ❌ **DO NOT enable** "Presence Intent" (not needed)
-   - ❌ **DO NOT enable** "Server Members Intent" (not needed) 
+   - ❌ **DO NOT enable** "Server Members Intent" (not needed)
    - ❌ **DO NOT enable** "Message Content Intent" (not needed for slash commands)
 3. **XyBeat only needs basic intents** which are enabled by default
 4. **If error persists**, the bot token might be invalid or expired
@@ -277,8 +296,9 @@ If you get this error, check your Discord Developer Portal settings:
 #### Permission Issues
 
 Ensure your bot has these permissions in Discord servers:
+
 - **Send Messages** - For command responses
-- **Use Slash Commands** - For command execution  
+- **Use Slash Commands** - For command execution
 - **Connect** - To join voice channels
 - **Speak** - To play audio in voice channels
 - **View Channels** - To see voice and text channels
@@ -305,6 +325,7 @@ If you encounter issues with the music player:
 #### Common Solutions
 
 1. **Check system dependencies**:
+
    ```bash
    # Verify yt-dlp is installed and accessible
    /snap/bin/yt-dlp --version
@@ -316,6 +337,7 @@ If you encounter issues with the music player:
 2. **Check voice permissions**: Ensure bot has Connect and Speak permissions in voice channels
 
 3. **Verify file permissions**: Ensure bot can write to `~/music-bot/mp3/` directory
+
    ```bash
    mkdir -p ~/music-bot/mp3
    chmod 755 ~/music-bot/mp3
@@ -342,7 +364,7 @@ If you encounter issues with the music player:
 XyBeat was built from the ground up as a dedicated music bot, focusing on:
 
 - **🎯 Reliability** - Native yt-dlp integration ensures consistent downloads
-- **⚡ Performance** - Smart caching and progress tracking for optimal user experience  
+- **⚡ Performance** - Smart caching and progress tracking for optimal user experience
 - **🔄 Flexibility** - Handles any YouTube content: videos, playlists, mixes, and searches
 - **🎨 User Experience** - Beautiful progress indicators and intuitive controls
 - **🛡️ Robustness** - Graceful fallbacks for private/restricted content
@@ -360,6 +382,10 @@ XyBeat uses a sophisticated multi-layer approach:
 
 ### ✨ Latest Features
 
+- ✅ **🚀 Background Downloading** - Pre-downloads queued songs for instant playback, no more waiting!
+- ✅ **⚡ Smart Download Queue** - Prioritizes next songs in queue with concurrent downloading (2-3 songs per server)
+- ✅ **📊 Download Statistics** - Monitor background download progress with `/download-stats` command
+- ✅ **🎯 Intelligent Caching** - Automatically skips already downloaded songs, optimizes storage usage
 - ✅ **Real-Time Progress Tracking** - Live download progress with visual indicators
 - ✅ **Auto Command Registration** - Commands automatically deployed on bot startup
 - ✅ **Progress Cleanup** - Progress embeds automatically disappear when complete
@@ -377,7 +403,7 @@ XyBeat uses a sophisticated multi-layer approach:
 
 ## 🤝 Contributing
 
-We welcome contributions to make XyBeat even better! 
+We welcome contributions to make XyBeat even better!
 
 1. **Fork** the repository
 2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)

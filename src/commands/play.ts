@@ -271,17 +271,17 @@ const command: Command = {
           }
         }
 
-        // Add all videos to queue
-        for (const videoInfo of playlistVideos) {
-          const song: Song = {
-            title: videoInfo.title,
-            url: videoInfo.url,
-            duration: videoInfo.duration,
-            thumbnail: videoInfo.thumbnail,
-            requestedBy: interaction.user,
-          };
-          await musicManager.addSong(interaction.guild.id, song);
-        }
+        // Convert all videos to songs and add to queue efficiently
+        const songs: Song[] = playlistVideos.map((videoInfo) => ({
+          title: videoInfo.title,
+          url: videoInfo.url,
+          duration: videoInfo.duration,
+          thumbnail: videoInfo.thumbnail,
+          requestedBy: interaction.user,
+        }));
+
+        // Add all songs at once (triggers background downloading automatically)
+        await musicManager.addSongs(interaction.guild.id, songs);
 
         Logger.debug(
           `play: queued ${playlistVideos.length} songs from playlist for guild=${
