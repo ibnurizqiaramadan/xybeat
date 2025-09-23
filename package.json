@@ -10,7 +10,8 @@
     "watch": "nodemon --exec ts-node -r tsconfig-paths/register src/index.ts",
     "format": "eslint src --ext .ts --fix",
     "lint": "eslint src --ext .ts",
-    "deploy-commands": "ts-node -r tsconfig-paths/register src/deploy-commands.ts"
+    "deploy-commands": "ts-node -r tsconfig-paths/register src/deploy-commands.ts",
+    "deploy-commands:global": "ts-node -r tsconfig-paths/register src/deploy-commands.ts --global"
   },
   "keywords": [
     "discord",

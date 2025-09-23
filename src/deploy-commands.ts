@@ -8,8 +8,9 @@ import { Logger } from '@/utils/logger';
 /**
  * Deploy slash commands to Discord API.
  * @param {boolean} _autoRun - Whether this is being run automatically
+ * @param {boolean} forceGlobal - Force global deployment even if GUILD_ID is set
  */
-export async function deployCommands(_autoRun: boolean = false): Promise<void> {
+export async function deployCommands(_autoRun: boolean = false, forceGlobal: boolean = false): Promise<void> {
   const commands = [];
   const commandsPath = join(__dirname, 'commands');
 
@@ -40,18 +41,23 @@ export async function deployCommands(_autoRun: boolean = false): Promise<void> {
 
     // Deploy commands globally or to a specific guild
     let data;
-    if (config.guildId) {
+    if (config.guildId && !forceGlobal) {
       // Deploy to specific guild (faster for development)
       data = (await rest.put(Routes.applicationGuildCommands(config.clientId, config.guildId), {
         body: commands,
       })) as unknown[];
-      Logger.info(`Successfully reloaded ${data.length} guild application (/) commands.`);
+      Logger.info(`Successfully reloaded ${data.length} guild application (/) commands for guild ${config.guildId}.`);
+      if (!_autoRun) {
+        Logger.warn('⚠️  Commands deployed to specific guild only. For production, consider global deployment.');
+        Logger.info('💡 To deploy globally: npm run deploy-commands:global');
+      }
     } else {
       // Deploy globally (takes up to 1 hour to update)
       data = (await rest.put(Routes.applicationCommands(config.clientId), {
         body: commands,
       })) as unknown[];
       Logger.info(`Successfully reloaded ${data.length} global application (/) commands.`);
+      Logger.info('🌍 Commands deployed globally. May take up to 1 hour to propagate to all servers.');
     }
   } catch (error) {
     Logger.error('Error deploying commands:', error as Error);
@@ -60,4 +66,8 @@ export async function deployCommands(_autoRun: boolean = false): Promise<void> {
 }
 
 // Run the deployment
-deployCommands();
+if (require.main === module) {
+  // Check for global deployment flag
+  const forceGlobal = process.argv.includes('--global');
+  deployCommands(false, forceGlobal);
+}
