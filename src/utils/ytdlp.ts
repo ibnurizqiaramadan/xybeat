@@ -139,26 +139,26 @@ function parseDownloadProgress(data: string): DownloadProgress | null {
     /\[download\]\s+(\d+\.?\d*)%\s+of\s+(\S+)(?:\s+at\s+(\S+)\s+ETA\s+(\S+)|\s+in\s+(\S+))?/,
   );
 
-  if (progressMatch && progressMatch[1] && progressMatch[2]) {
-    const percentage = parseFloat(progressMatch[1]);
-    const total = progressMatch[2];
-    const speed = progressMatch[3] || 'N/A';
-    const eta = progressMatch[4] || '00:00';
-
-    const numericTotal = parseFloat(total.replace(/[^\d.]/g, '')) || 0;
-    const unit = total.replace(/[\d.]/g, '');
-    const downloadedVal = ((percentage / 100) * numericTotal).toFixed(1);
-
-    return {
-      percentage,
-      downloaded: `${downloadedVal}${unit}`,
-      total,
-      speed,
-      eta,
-    };
+  if (!progressMatch || !progressMatch[1] || !progressMatch[2]) {
+    return null;
   }
 
-  return null;
+  const percentage = parseFloat(progressMatch[1]);
+  const total = progressMatch[2];
+  const speed = progressMatch[3] || 'N/A';
+  const eta = progressMatch[4] || '00:00';
+
+  const numericTotal = parseFloat(total.replace(/[^\d.]/g, '')) || 0;
+  const unit = total.replace(/[\d.]/g, '');
+  const downloadedVal = ((percentage / 100) * numericTotal).toFixed(1);
+
+  return {
+    percentage,
+    downloaded: `${downloadedVal}${unit}`,
+    total,
+    speed,
+    eta,
+  };
 }
 
 /**

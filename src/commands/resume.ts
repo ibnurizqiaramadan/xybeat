@@ -60,66 +60,70 @@ const command: Command = {
       }
     }
 
-    // If queue exists, check if it's paused and can be resumed
-    if (queue.player && !queue.playing) {
-      // Check if bot is connected to voice channel
-      if (!queue.connection) {
-        // Bot was disconnected, need to reconnect first
-        try {
-          const hasPermissions = await validateBotPermissions(
-            voiceChannel,
-            interaction,
-            '❌ I need permissions to connect and speak in your voice channel to resume!',
-          );
-          if (!hasPermissions) return;
-
-          const connection = joinVoiceChannel({
-            channelId: voiceChannel.id,
-            guildId: interaction.guild.id,
-            adapterCreator: interaction.guild.voiceAdapterCreator,
-          });
-
-          queue.connection = connection;
-          connection.subscribe(queue.player);
-
-          Logger.info(`Reconnected to voice channel ${voiceChannel.name} for resume in guild ${interaction.guild.id}`);
-        } catch (error) {
-          const { MessageFlags } = await import('discord.js');
-          await interaction.reply({
-            content: '❌ Failed to reconnect to voice channel!',
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
-        }
-      }
-
-      // Try crash recovery first (now that we have voice connection)
-      const resumed = await musicManager.resumeFromCrash(interaction.guild.id);
-      if (resumed) {
-        await interaction.reply({
-          content: '🔄 Recovered and resumed from previous session!',
-        });
-        return;
-      }
-
-      // Normal resume for paused music
-      musicManager.resume(interaction.guild.id);
-      await interaction.reply({
-        content: '▶️ Resumed the current song.',
-      });
-    } else if (queue.playing) {
+    // If music is already playing, exit early
+    if (queue.playing) {
       const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ Music is already playing!',
         flags: MessageFlags.Ephemeral,
       });
-    } else {
+      return;
+    }
+
+    // If there is no paused music to resume, exit early
+    if (!queue.player) {
       const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ No paused music to resume. Use `/play` to start playing music.',
         flags: MessageFlags.Ephemeral,
       });
+      return;
     }
+
+    // Bot was disconnected, need to reconnect first
+    if (!queue.connection) {
+      try {
+        const hasPermissions = await validateBotPermissions(
+          voiceChannel,
+          interaction,
+          '❌ I need permissions to connect and speak in your voice channel to resume!',
+        );
+        if (!hasPermissions) return;
+
+        const connection = joinVoiceChannel({
+          channelId: voiceChannel.id,
+          guildId: interaction.guild.id,
+          adapterCreator: interaction.guild.voiceAdapterCreator,
+        });
+
+        queue.connection = connection;
+        connection.subscribe(queue.player);
+
+        Logger.info(`Reconnected to voice channel ${voiceChannel.name} for resume in guild ${interaction.guild.id}`);
+      } catch (error) {
+        const { MessageFlags } = await import('discord.js');
+        await interaction.reply({
+          content: '❌ Failed to reconnect to voice channel!',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
+      }
+    }
+
+    // Try crash recovery first (now that we have voice connection)
+    const resumed = await musicManager.resumeFromCrash(interaction.guild.id);
+    if (resumed) {
+      await interaction.reply({
+        content: '🔄 Recovered and resumed from previous session!',
+      });
+      return;
+    }
+
+    // Normal resume for paused music
+    musicManager.resume(interaction.guild.id);
+    await interaction.reply({
+      content: '▶️ Resumed the current song.',
+    });
   },
 };
 
