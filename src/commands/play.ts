@@ -218,7 +218,8 @@ const command: Command = {
 
               // Update only every 2 seconds to avoid rate limiting
               const now = Date.now();
-              if (now - lastProgressUpdate < 2000) {
+              const isFinished = progress.percentage >= 100 || progress.downloaded === 'Cached';
+              if (!isFinished && now - lastProgressUpdate < 2000) {
                 Logger.debug(`Progress update skipped (rate limit): ${progress.percentage}%`);
                 return;
               }
@@ -430,7 +431,8 @@ const command: Command = {
 
             // Update only every 2 seconds to avoid rate limiting
             const now = Date.now();
-            if (now - lastProgressUpdate < 2000) {
+            const isFinished = progress.percentage >= 100 || progress.downloaded === 'Cached';
+            if (!isFinished && now - lastProgressUpdate < 2000) {
               Logger.debug(`Progress update skipped (rate limit): ${progress.percentage}%`);
               return;
             }

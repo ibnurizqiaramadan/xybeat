@@ -133,19 +133,28 @@ export async function searchYouTube(query: string): Promise<VideoInfo | null> {
 function parseDownloadProgress(data: string): DownloadProgress | null {
   // Match yt-dlp download progress format:
   // [download]  54.2% of  144.12MiB at    3.65MiB/s ETA 00:18
+  // or completion format:
+  // [download] 100% of 19.75MiB in 00:05
   const progressMatch = data.match(
-    /\[download\]\s+(\d+\.?\d*)%\s+of\s+(\S+)\s+at\s+(\S+)\s+ETA\s+(\S+)/,
+    /\[download\]\s+(\d+\.?\d*)%\s+of\s+(\S+)(?:\s+at\s+(\S+)\s+ETA\s+(\S+)|\s+in\s+(\S+))?/,
   );
 
-  if (progressMatch && progressMatch[1] && progressMatch[2] && progressMatch[3] && progressMatch[4]) {
+  if (progressMatch && progressMatch[1] && progressMatch[2]) {
+    const percentage = parseFloat(progressMatch[1]);
+    const total = progressMatch[2];
+    const speed = progressMatch[3] || 'N/A';
+    const eta = progressMatch[4] || '00:00';
+
+    const numericTotal = parseFloat(total.replace(/[^\d.]/g, '')) || 0;
+    const unit = total.replace(/[\d.]/g, '');
+    const downloadedVal = ((percentage / 100) * numericTotal).toFixed(1);
+
     return {
-      percentage: parseFloat(progressMatch[1]),
-      downloaded: ((parseFloat(progressMatch[1]) / 100) *
-        parseFloat(progressMatch[2].replace(/[^\d.]/g, ''))).toFixed(1) +
-        progressMatch[2].replace(/[\d.]/g, ''),
-      total: progressMatch[2],
-      speed: progressMatch[3],
-      eta: progressMatch[4],
+      percentage,
+      downloaded: `${downloadedVal}${unit}`,
+      total,
+      speed,
+      eta,
     };
   }
 
@@ -442,6 +451,16 @@ export async function downloadYouTubeToMp3(
       // Handle process completion
       ffmpeg.on('close', (code) => {
         if (code === 0) {
+          if (progressCallback) {
+            // Force 100% progress update on completion
+            progressCallback({
+              percentage: 100,
+              downloaded: '100%',
+              total: '100%',
+              speed: '0.00B/s',
+              eta: '00:00',
+            });
+          }
           resolve({ filePath: outputPath, videoId });
         } else {
           reject(new Error(`ffmpeg process exited with code ${code}`));
