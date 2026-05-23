@@ -1,8 +1,9 @@
-import { SlashCommandBuilder, CommandInteraction, GuildMember, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
 import { joinVoiceChannel } from '@discordjs/voice';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 import { Logger } from '@/utils/logger';
+import { validateVoiceConnection, validateBotPermissions } from '@/utils/commandHelper';
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -10,24 +11,10 @@ const command: Command = {
     .setDescription('Resume paused music or recover from crash'),
 
   async execute(interaction: CommandInteraction) {
-    if (!interaction.guild) {
-      await interaction.reply({
-        content: '❌ This command can only be used in a server!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    if (!interaction.guild) return;
 
-    const member = interaction.member as GuildMember;
-    const voiceChannel = member.voice.channel;
-
-    if (!voiceChannel) {
-      await interaction.reply({
-        content: '❌ You need to be in a voice channel to use music commands!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    const voiceChannel = await validateVoiceConnection(interaction, true);
+    if (!voiceChannel) return;
 
     let queue = musicManager.getQueue(interaction.guild.id);
 
@@ -56,6 +43,7 @@ const command: Command = {
           });
           return;
         } else {
+          const { MessageFlags } = await import('discord.js');
           await interaction.reply({
             content: '❌ No music queue or crashed session found to resume!',
             flags: MessageFlags.Ephemeral,
@@ -63,6 +51,7 @@ const command: Command = {
           return;
         }
       } catch (error) {
+        const { MessageFlags } = await import('discord.js');
         await interaction.reply({
           content: '❌ Failed to restore music session!',
           flags: MessageFlags.Ephemeral,
@@ -77,6 +66,13 @@ const command: Command = {
       if (!queue.connection) {
         // Bot was disconnected, need to reconnect first
         try {
+          const hasPermissions = await validateBotPermissions(
+            voiceChannel,
+            interaction,
+            '❌ I need permissions to connect and speak in your voice channel to resume!',
+          );
+          if (!hasPermissions) return;
+
           const connection = joinVoiceChannel({
             channelId: voiceChannel.id,
             guildId: interaction.guild.id,
@@ -88,6 +84,7 @@ const command: Command = {
 
           Logger.info(`Reconnected to voice channel ${voiceChannel.name} for resume in guild ${interaction.guild.id}`);
         } catch (error) {
+          const { MessageFlags } = await import('discord.js');
           await interaction.reply({
             content: '❌ Failed to reconnect to voice channel!',
             flags: MessageFlags.Ephemeral,
@@ -111,11 +108,13 @@ const command: Command = {
         content: '▶️ Resumed the current song.',
       });
     } else if (queue.playing) {
+      const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ Music is already playing!',
         flags: MessageFlags.Ephemeral,
       });
     } else {
+      const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ No paused music to resume. Use `/play` to start playing music.',
         flags: MessageFlags.Ephemeral,

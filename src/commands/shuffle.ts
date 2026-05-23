@@ -1,5 +1,6 @@
-import { SlashCommandBuilder, MessageFlags } from 'discord.js';
+import { SlashCommandBuilder } from 'discord.js';
 import { Command } from '@/types';
+import { validateVoiceConnection } from '@/utils/commandHelper';
 import { musicManager } from '@/utils/musicManager';
 
 const command: Command = {
@@ -8,19 +9,15 @@ const command: Command = {
     .setDescription('Shuffle the music queue randomly'),
 
   async execute(interaction) {
-    // Check if user is in a voice channel
-    const member = interaction.guild?.members.cache.get(interaction.user.id);
-    if (!member?.voice.channel) {
-      await interaction.reply({
-        content: '❌ You need to be in a voice channel to shuffle the queue!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    if (!interaction.guild) return;
+
+    const voiceChannel = await validateVoiceConnection(interaction, true);
+    if (!voiceChannel) return;
 
     // Check if there's a music queue
-    const queue = musicManager.getQueue(interaction.guild!.id);
+    const queue = musicManager.getQueue(interaction.guild.id);
     if (!queue) {
+      const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ No music queue found! Use `/play` to start playing music first.',
         flags: MessageFlags.Ephemeral,
@@ -30,6 +27,7 @@ const command: Command = {
 
     // Check if queue has enough songs to shuffle
     if (queue.songs.length <= 1) {
+      const { MessageFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ Need at least 2 songs in queue to shuffle!',
         flags: MessageFlags.Ephemeral,
@@ -42,7 +40,7 @@ const command: Command = {
       await interaction.deferReply();
 
       // Shuffle the queue
-      const shuffledCount = await musicManager.shuffleQueue(interaction.guild!.id);
+      const shuffledCount = await musicManager.shuffleQueue(interaction.guild.id);
 
       if (shuffledCount === 0) {
         await interaction.editReply({
@@ -71,6 +69,7 @@ const command: Command = {
           content: '❌ Failed to shuffle the queue. Please try again later.',
         });
       } else {
+        const { MessageFlags } = await import('discord.js');
         await interaction.reply({
           content: '❌ Failed to shuffle the queue. Please try again later.',
           flags: MessageFlags.Ephemeral,

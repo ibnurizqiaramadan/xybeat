@@ -2,11 +2,10 @@ import {
   SlashCommandBuilder,
   CommandInteraction,
   EmbedBuilder,
-  GuildMember,
   ChatInputCommandInteraction,
-  MessageFlags,
 } from 'discord.js';
 import { Command } from '@/types';
+import { validateVoiceConnection, validateBotPermissions } from '@/utils/commandHelper';
 import { musicManager } from '@/utils/musicManager';
 import { Song } from '@/types/music';
 import { Logger } from '@/utils/logger';
@@ -105,33 +104,13 @@ const command: Command = {
     Logger.debug('=== PLAY COMMAND STARTED ===');
     Logger.debug(`User: ${interaction.user.username}, Guild: ${interaction.guild?.name}`);
 
-    if (!interaction.guild) {
-      await interaction.reply({
-        content: '❌ This command can only be used in a server!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    if (!interaction.guild) return;
 
-    const member = interaction.member as GuildMember;
-    const voiceChannel = member.voice.channel;
+    const voiceChannel = await validateVoiceConnection(interaction, true);
+    if (!voiceChannel) return;
 
-    if (!voiceChannel) {
-      await interaction.reply({
-        content: '❌ You need to be in a voice channel to play music!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
-
-    const permissions = voiceChannel.permissionsFor(interaction.client.user!);
-    if (!permissions?.has(['Connect', 'Speak'])) {
-      await interaction.reply({
-        content: '❌ I need permissions to connect and speak in your voice channel!',
-        flags: MessageFlags.Ephemeral,
-      });
-      return;
-    }
+    const hasPermissions = await validateBotPermissions(voiceChannel, interaction);
+    if (!hasPermissions) return;
 
     Logger.debug('Deferring reply...');
     await interaction.deferReply();
