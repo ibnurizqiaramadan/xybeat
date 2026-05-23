@@ -18,10 +18,10 @@ const command: Command = {
     // Check if bot is in a voice channel (specifically for leave command)
     const botVoiceChannel = interaction.guild.members.me?.voice.channel;
     if (!botVoiceChannel) {
-      const { MessageFlags } = await import('discord.js');
+      const { MessageFlags: LocalFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ I\'m not connected to any voice channel!',
-        flags: MessageFlags.Ephemeral,
+        flags: LocalFlags.Ephemeral,
       });
       return;
     }
@@ -49,17 +49,16 @@ const command: Command = {
         responseContent += '✅ Disconnected from voice channel';
       }
 
-      await interaction.reply({
-        content: responseContent,
-      });
+      await interaction.reply({ content: responseContent });
     } catch (error) {
       console.error('Error leaving voice channel:', error);
 
-      const { MessageFlags } = await import('discord.js');
+      const { MessageFlags: LocalFlags } = await import('discord.js');
       await interaction.reply({
         content: '❌ Failed to leave voice channel. Please try again later.',
-        flags: MessageFlags.Ephemeral,
+        flags: LocalFlags.Ephemeral,
       });
+      return;
     }
   },
 };

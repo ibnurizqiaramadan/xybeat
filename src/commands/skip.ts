@@ -23,10 +23,7 @@ const command: Command = {
     }
 
     musicManager.skip(interaction.guild.id);
-
-    await interaction.reply({
-      content: '⏭️ Skipped the current song.',
-    });
+    await interaction.reply({ content: '⏭️ Skipped the current song.' });
   },
 };
 

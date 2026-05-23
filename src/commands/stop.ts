@@ -25,7 +25,6 @@ const command: Command = {
     }
 
     await musicManager.stop(interaction.guild.id);
-
     await interaction.reply({
       content: '⏹️ Stopped playing music. Queue preserved - use `/play` to resume or `/clear` to clear the queue.',
     });

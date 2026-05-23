@@ -30,9 +30,7 @@ const command: Command = {
         // Try crash recovery first
         const resumed = await musicManager.resumeFromCrash(interaction.guild.id);
         if (resumed) {
-          await interaction.reply({
-            content: '🔄 Recovered and resumed from previous session!',
-          });
+          await interaction.reply({ content: '🔄 Recovered and resumed from previous session!' });
           return;
         }
 
@@ -42,14 +40,14 @@ const command: Command = {
             content: `📋 Restored queue with ${queue.songs.length} song(s). Use \`/play\` to start playing.`,
           });
           return;
-        } else {
-          const { MessageFlags } = await import('discord.js');
-          await interaction.reply({
-            content: '❌ No music queue or crashed session found to resume!',
-            flags: MessageFlags.Ephemeral,
-          });
-          return;
         }
+
+        const { MessageFlags } = await import('discord.js');
+        await interaction.reply({
+          content: '❌ No music queue or crashed session found to resume!',
+          flags: MessageFlags.Ephemeral,
+        });
+        return;
       } catch (error) {
         const { MessageFlags } = await import('discord.js');
         await interaction.reply({
@@ -113,17 +111,13 @@ const command: Command = {
     // Try crash recovery first (now that we have voice connection)
     const resumed = await musicManager.resumeFromCrash(interaction.guild.id);
     if (resumed) {
-      await interaction.reply({
-        content: '🔄 Recovered and resumed from previous session!',
-      });
+      await interaction.reply({ content: '🔄 Recovered and resumed from previous session!' });
       return;
     }
 
     // Normal resume for paused music
     musicManager.resume(interaction.guild.id);
-    await interaction.reply({
-      content: '▶️ Resumed the current song.',
-    });
+    await interaction.reply({ content: '▶️ Resumed the current song.' });
   },
 };
 

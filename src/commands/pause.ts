@@ -23,10 +23,7 @@ const command: Command = {
     }
 
     musicManager.pause(interaction.guild.id);
-
-    await interaction.reply({
-      content: '⏸️ Paused the current song.',
-    });
+    await interaction.reply({ content: '⏸️ Paused the current song.' });
   },
 };
 
