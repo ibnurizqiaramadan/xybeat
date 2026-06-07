@@ -90,6 +90,7 @@ class MusicManagerImpl implements MusicManager {
       player,
       autoplay: false,
       lastSong: null,
+      history: [],
     };
 
     // Handle player events
@@ -174,7 +175,7 @@ class MusicManagerImpl implements MusicManager {
       if (queue.autoplay && queue.lastSong) {
         Logger.info(`Autoplay: Finding related song for ${queue.lastSong.title}`);
         try {
-          const related = await getRelatedVideo(queue.lastSong.url);
+          const related = await getRelatedVideo(queue.lastSong.url, queue.history);
           if (related) {
             const song: Song = {
               title: related.title,
@@ -210,6 +211,14 @@ class MusicManagerImpl implements MusicManager {
 
     // Update last played song
     queue.lastSong = song;
+
+    // Add to history and keep max 20
+    if (song.url) {
+      queue.history.push(song.url);
+      if (queue.history.length > 20) {
+        queue.history.shift();
+      }
+    }
 
     try {
       Logger.debug(`musicManager.playNext: song.title="${song.title}", url=${song.url}`);

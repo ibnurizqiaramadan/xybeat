@@ -23,6 +23,7 @@ export interface MusicQueue {
   player: AudioPlayer | null;
   autoplay: boolean;
   lastSong: Song | null;
+  history: string[];
 }
 
 export interface MusicManager {

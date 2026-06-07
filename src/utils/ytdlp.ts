@@ -346,9 +346,10 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
 /**
  * Get related video info for a given video
  * @param {string} url - Current video URL
+ * @param {string[]} history - Array of previously played video URLs
  * @return {Promise<VideoInfo | null>} A related video or null
  */
-export async function getRelatedVideo(url: string): Promise<VideoInfo | null> {
+export async function getRelatedVideo(url: string, history: string[] = []): Promise<VideoInfo | null> {
   return new Promise((resolve, reject) => {
     // We use --dump-json to get related videos from the info dict
     const ytdlp = spawn('/snap/bin/yt-dlp', [
@@ -375,8 +376,15 @@ export async function getRelatedVideo(url: string): Promise<VideoInfo | null> {
         const related = info.related_videos;
 
         if (related && Array.isArray(related) && related.length > 0) {
-          // Pick the first related video that has an ID
-          const firstRelated = related.find((r) => r.id);
+          // Filter out videos that are in history
+          const unplayedRelated = related.filter((r) => {
+            if (!r.id) return false;
+            const videoUrl = `https://www.youtube.com/watch?v=${r.id}`;
+            return !history.includes(videoUrl) && videoUrl !== url;
+          });
+
+          // Pick the first unplayed related video
+          const firstRelated = unplayedRelated[0];
           if (firstRelated) {
             resolve({
               id: firstRelated.id,
