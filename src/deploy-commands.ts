@@ -69,5 +69,5 @@ export async function deployCommands(_autoRun: boolean = false, forceGlobal: boo
 if (require.main === module) {
   // Check for global deployment flag
   const forceGlobal = process.argv.includes('--global');
-  deployCommands(false, forceGlobal);
+  deployCommands(false, forceGlobal).then(() => process.exit(0));
 }
