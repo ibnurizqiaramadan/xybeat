@@ -6,7 +6,7 @@ import {
   VoiceConnectionStatus,
   generateDependencyReport,
 } from '@discordjs/voice';
-import { downloadYouTubeToMp3, DownloadProgress } from '@/utils/ytdlp';
+import { downloadYouTubeToMp3, DownloadProgress, getRelatedVideo } from '@/utils/ytdlp';
 import { MusicQueue, Song, MusicManager } from '@/types/music';
 import { VoiceBasedChannel } from 'discord.js';
 import { Logger } from '@/utils/logger';
@@ -88,6 +88,8 @@ class MusicManagerImpl implements MusicManager {
       volume: 100,
       playing: false,
       player,
+      autoplay: false,
+      lastSong: null,
     };
 
     // Handle player events
@@ -166,7 +168,33 @@ class MusicManagerImpl implements MusicManager {
    */
   private async playNext(guildId: string): Promise<void> {
     const queue = this.getQueue(guildId);
-    if (!queue || queue.songs.length === 0) {
+    if (!queue) return;
+
+    if (queue.songs.length === 0) {
+      if (queue.autoplay && queue.lastSong) {
+        Logger.info(`Autoplay: Finding related song for ${queue.lastSong.title}`);
+        try {
+          const related = await getRelatedVideo(queue.lastSong.url);
+          if (related) {
+            const song: Song = {
+              title: related.title,
+              url: related.url,
+              duration: related.duration,
+              thumbnail: related.thumbnail,
+              requestedBy: queue.lastSong.requestedBy,
+            };
+            queue.songs.push(song);
+            Logger.info(`Autoplay: Added ${song.title} to queue`);
+            await queue.textChannel.send({
+              content: `🔄 **Autoplay:** Found a related song: **${song.title}**`,
+            } as unknown as import('discord.js').MessageCreateOptions);
+            return this.playNext(guildId);
+          }
+        } catch (error) {
+          Logger.error('Autoplay failed:', error as Error);
+        }
+      }
+
       Logger.info(`No more songs in queue for guild ${guildId}`);
       return;
     }
@@ -179,6 +207,9 @@ class MusicManagerImpl implements MusicManager {
 
     const song = queue.songs.shift();
     if (!song) return;
+
+    // Update last played song
+    queue.lastSong = song;
 
     try {
       Logger.debug(`musicManager.playNext: song.title="${song.title}", url=${song.url}`);

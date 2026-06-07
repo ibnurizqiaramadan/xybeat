@@ -21,6 +21,8 @@ export interface MusicQueue {
   volume: number;
   playing: boolean;
   player: AudioPlayer | null;
+  autoplay: boolean;
+  lastSong: Song | null;
 }
 
 export interface MusicManager {
