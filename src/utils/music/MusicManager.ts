@@ -19,13 +19,6 @@ class MusicManagerImpl implements MusicManager {
   }
 
   /**
-   * Periodically updates the playing state in Redis with accurate playback position
-   */
-  private async updatePlaybackStates(): Promise<void> {
-    return state.updatePlaybackStates(this);
-  }
-
-  /**
    * Create a new music queue for a guild.
    * @param {string} guildId - The guild ID.
    * @param {VoiceBasedChannel} voiceChannel - The voice channel to connect to.
@@ -57,7 +50,7 @@ class MusicManagerImpl implements MusicManager {
    * Play the next song in the queue.
    * @param {string} guildId - The guild ID.
    */
-  private async playNext(guildId: string, seekMs: number = 0): Promise<void> {
+  async playNext(guildId: string, seekMs: number = 0): Promise<void> {
     return playback.playNext(this, guildId, seekMs);
   }
 
@@ -93,7 +86,7 @@ class MusicManagerImpl implements MusicManager {
    * @param {string} voiceChannelId - The voice channel ID
    * @return {Promise<Song[]>}
    */
-  private async loadQueueFromRedis(guildId: string, voiceChannelId: string): Promise<{ songs: Song[]; autoplay: boolean; history: string[] }> {
+  async loadQueueFromRedis(guildId: string, voiceChannelId: string): Promise<{ songs: Song[]; autoplay: boolean; history: string[] }> {
     return state.loadQueueFromRedis(this, guildId, voiceChannelId);
   }
 
@@ -104,7 +97,7 @@ class MusicManagerImpl implements MusicManager {
    * @param {Song} currentSong - Currently playing song
    * @param {boolean} isPlaying - Whether music is currently playing
    */
-  private async savePlayingStateToRedis(guildId: string, voiceChannelId: string, currentSong: Song, isPlaying: boolean, textChannelId?: string, playbackDurationMs?: number): Promise<void> {
+  async savePlayingStateToRedis(guildId: string, voiceChannelId: string, currentSong: Song, isPlaying: boolean, textChannelId?: string, playbackDurationMs?: number): Promise<void> {
     return state.savePlayingStateToRedis(this, guildId, voiceChannelId, currentSong, isPlaying, textChannelId, playbackDurationMs);
   }
 
@@ -114,7 +107,7 @@ class MusicManagerImpl implements MusicManager {
    * @param {string} voiceChannelId - The voice channel ID
    * @return {Promise<PlayingState | null>}
    */
-  private async loadPlayingStateFromRedis(guildId: string, voiceChannelId: string): Promise<PlayingState | null> {
+  async loadPlayingStateFromRedis(guildId: string, voiceChannelId: string): Promise<PlayingState | null> {
     return state.loadPlayingStateFromRedis(this, guildId, voiceChannelId);
   }
 
@@ -148,7 +141,7 @@ class MusicManagerImpl implements MusicManager {
    * Trigger background downloads for songs in the queue.
    * @param {string} guildId - The guild ID.
    */
-  private triggerBackgroundDownloads(guildId: string): void {
+  triggerBackgroundDownloads(guildId: string): void {
     return queue.triggerBackgroundDownloads(this, guildId);
   }
 
