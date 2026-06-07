@@ -18,22 +18,30 @@ import { AudioPlayerStatus } from '@discordjs/voice';
    * Periodically updates the playing state in Redis with accurate playback position
    */
 export async function updatePlaybackStates(manager: any): Promise<void> {
+  const promises = [];
+
   for (const [guildId, queue] of manager.queues.entries()) {
     if (queue.playing && queue.player && queue.lastSong) {
       if (queue.player.state.status === AudioPlayerStatus.Playing) {
         const currentDuration = queue.player.state.resource.playbackDuration;
         const totalDuration = queue.seekOffsetMs + currentDuration;
 
-        await manager.savePlayingStateToRedis(
-          guildId,
-          queue.voiceChannel.id,
-          queue.lastSong,
-          true,
-          (queue.textChannel as unknown as { id?: string }).id,
-          totalDuration,
-        ).catch((err: any) => Logger.error('Failed to update playback state', err));
+        promises.push(
+          manager.savePlayingStateToRedis(
+            guildId,
+            queue.voiceChannel.id,
+            queue.lastSong,
+            true,
+            (queue.textChannel as unknown as { id?: string }).id,
+            totalDuration,
+          ).catch((err: any) => Logger.error(`Failed to update playback state for guild ${guildId}`, err)),
+        );
       }
     }
+  }
+
+  if (promises.length > 0) {
+    await Promise.allSettled(promises);
   }
 }
 
