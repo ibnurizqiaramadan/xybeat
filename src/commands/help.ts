@@ -18,14 +18,12 @@ const command: Command = {
         iconURL: interaction.user.displayAvatarURL(),
       });
 
-    // Add fields for each command
-    client.commands.forEach((cmd) => {
-      embed.addFields({
-        name: `\`/${cmd.data.name}\``,
-        value: cmd.data.description || 'No description available',
-        inline: false,
-      });
-    });
+    // Group commands into a single description string
+    const commandList = client.commands
+      .map((cmd) => `**\`/${cmd.data.name}\`** - ${cmd.data.description || 'No description available'}`)
+      .join('\n');
+
+    embed.setDescription(`Here are all the commands you can use:\n\n${commandList}`);
 
     // Add bot information
     embed.addFields(
