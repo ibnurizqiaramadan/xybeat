@@ -5,20 +5,15 @@ import { redisManager } from '../redis';
 
 import { backgroundDownloader } from '../backgroundDownloader';
 
-import { MusicQueue, Song } from '@/types/music';
+import { Song } from '@/types/music';
 
-import { createAudioResource, AudioPlayerStatus } from '@discordjs/voice';
+import { createAudioResource } from '@discordjs/voice';
 
 import { downloadYouTubeToMp3, getRelatedVideo } from '@/utils/ytdlp';
 
 import { createReadStream, existsSync } from 'fs';
 
 import { spawn } from 'child_process';
-
-import { savePlayingStateToRedis, saveQueue } from './state';
-
-import { triggerBackgroundDownloads } from './queue';
-import { VoiceBasedChannel } from 'discord.js';
 
 /**
    * Play the next song in the queue.

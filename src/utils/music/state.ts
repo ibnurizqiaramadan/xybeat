@@ -2,15 +2,8 @@
 import { Logger } from '@/utils/logger';
 
 import { redisManager } from '../redis';
-
-import { backgroundDownloader } from '../backgroundDownloader';
-
-import { MusicQueue, Song } from '@/types/music';
-
-import { createQueue } from './queue';
-
+import { Song } from '@/types/music';
 import { playNext } from './playback';
-
 import { PlayingState, SerializedSong, MinimalUser } from './types';
 import { AudioPlayerStatus } from '@discordjs/voice';
 

@@ -9,9 +9,7 @@ import { MusicQueue, Song } from '@/types/music';
 
 import { joinVoiceChannel, createAudioPlayer, AudioPlayerStatus } from '@discordjs/voice';
 
-import { playNext } from './playback';
 
-import { loadQueueFromRedis } from './state';
 import { VoiceBasedChannel } from 'discord.js';
 import { VoiceConnectionStatus } from '@discordjs/voice';
 import { DownloadProgress } from '@/utils/ytdlp';
