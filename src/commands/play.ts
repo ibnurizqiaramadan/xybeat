@@ -7,7 +7,7 @@ import { Command } from '@/types';
 import { validateVoiceConnection, validateBotPermissions } from '@/utils/commandHelper';
 import { Logger } from '@/utils/logger';
 import { isValidYouTubeUrl, isPlaylistUrl } from '@/utils/ytdlp';
-import { resolveQuery, handlePlaylist, handleSingleVideo } from '@/utils/playHandlers';
+import { resolveQuery, handlePlaylist, handleSingleVideo } from '@/utils/play';
 
 const command: Command = {
   data: new SlashCommandBuilder()

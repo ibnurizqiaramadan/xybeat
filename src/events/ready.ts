@@ -1,7 +1,7 @@
 import { Events, ActivityType } from 'discord.js';
 import { BotEvent, ExtendedClient } from '@/types';
 import { Logger } from '@/utils/logger';
-
+import { musicManager } from '@/utils/musicManager';
 const event: BotEvent = {
   name: Events.ClientReady,
   once: true,
@@ -21,6 +21,11 @@ const event: BotEvent = {
     });
 
     Logger.info(`Bot presence set for ${client.guilds.cache.size} servers`);
+
+    // Auto-resume any playing music after a crash or restart
+    musicManager.autoResumeAll(client).catch((err) => {
+      Logger.error('Failed to auto-resume music', err);
+    });
   },
 };
 

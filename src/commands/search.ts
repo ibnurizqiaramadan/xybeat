@@ -6,7 +6,7 @@ import {
 import { Command } from '@/types';
 import { validateVoiceConnection, validateBotPermissions } from '@/utils/commandHelper';
 import { Logger } from '@/utils/logger';
-import { handleSearch } from '@/utils/playHandlers';
+import { handleSearch } from '@/utils/play';
 
 const command: Command = {
   data: new SlashCommandBuilder()

@@ -24,6 +24,7 @@ export interface MusicQueue {
   autoplay: boolean;
   lastSong: Song | null;
   history: string[];
+  seekOffsetMs: number;
 }
 
 export interface MusicManager {
