@@ -210,12 +210,27 @@ export async function getRelatedVideo(url: string, history: string[] = []): Prom
         const info = JSON.parse(output);
         const related = info.related_videos;
 
+        // Extract IDs for robust comparison
+        const historyIds = history.map((h) => {
+          try {
+            return extractVideoId(h);
+          } catch {
+            return h;
+          }
+        });
+        const currentId = (() => {
+          try {
+            return extractVideoId(url);
+          } catch {
+            return url;
+          }
+        })();
+
         if (related && Array.isArray(related) && related.length > 0) {
           // Filter out videos that are in history
           const unplayedRelated = related.filter((r) => {
             if (!r.id) return false;
-            const videoUrl = `https://www.youtube.com/watch?v=${r.id}`;
-            return !history.includes(videoUrl) && videoUrl !== url;
+            return !historyIds.includes(r.id) && r.id !== currentId;
           });
 
           // Pick the first unplayed related video
@@ -238,8 +253,8 @@ export async function getRelatedVideo(url: string, history: string[] = []): Prom
 
         // Filter out videos that are in history
         const unplayedSearchResults = searchResults.filter((r) => {
-          if (!r.url) return false;
-          return !history.includes(r.url) && r.url !== url;
+          if (!r.id) return false;
+          return !historyIds.includes(r.id) && r.id !== currentId;
         });
 
         if (unplayedSearchResults.length > 0 && unplayedSearchResults[0]) {
