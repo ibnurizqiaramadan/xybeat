@@ -1,7 +1,6 @@
 import { spawn, ChildProcessWithoutNullStreams } from 'child_process';
-import { Readable } from 'stream';
 import { promises as fs } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import { homedir } from 'os';
 import { Logger } from '../logger';
 import { DownloadProgress, YtdlpDownloadResult, YtdlpStreamResult } from './types';
@@ -45,34 +44,90 @@ export function parseDownloadProgress(data: string): DownloadProgress | null {
 }
 
 /**
- * Create an audio stream using native yt-dlp binary to be used by @discordjs/voice.
- * @param {string} url - Canonical YouTube video URL.
- * @return {Promise<YtdlpStreamResult>} Readable stream and type metadata.
+ * Path of the cached MP3 for a video.
+ * @param {string} url - YouTube video URL
+ * @return {string} Cache file path
  */
-export async function createYtdlpAudioStream(url: string): Promise<YtdlpStreamResult> {
-  try {
-    const proc: ChildProcessWithoutNullStreams = spawnYtdlp([
-      url,
-      '--format',
-      'bestaudio[ext=webm]/bestaudio/best',
-      '--output',
-      '-',
-      '--quiet',
-      '--no-check-certificate',
-      '--prefer-free-formats',
-      '--audio-format',
-      'best',
-    ]);
+export function cachedMp3Path(url: string): string {
+  return join(homedir(), 'music-bot', 'mp3', `${extractVideoId(url)}.mp3`);
+}
 
-    // Handle process errors
-    proc.on('error', (error) => {
-      throw new Error(`yt-dlp process error: ${error.message}`);
+/**
+ * Stream a video's audio as raw PCM (s16le, 48kHz, stereo) for StreamType.Raw.
+ * Seeking decodes from the start and drops audio before seekMs (-ss after -i),
+ * so it works through any YTDLP_PROXY at the cost of fetching up to that point.
+ * @param {string} url - YouTube video URL
+ * @param {number} seekMs - Start position in milliseconds
+ * @return {YtdlpStreamResult} Stream, readiness, and failure check
+ */
+export function createYtdlpAudioStream(url: string, seekMs: number = 0): YtdlpStreamResult {
+  const ytdlp = spawnYtdlp(['-f', 'bestaudio/18/best', '-o', '-', '--quiet', url]);
+  const ffmpeg = spawn('/usr/bin/ffmpeg', [
+    '-hide_banner',
+    '-loglevel',
+    'error',
+    '-i',
+    'pipe:0',
+    ...(seekMs > 0 ? ['-ss', (seekMs / 1000).toString()] : []),
+    '-f',
+    's16le',
+    '-ar',
+    '48000',
+    '-ac',
+    '2',
+    'pipe:1',
+  ]);
+
+  ytdlp.stdout.pipe(ffmpeg.stdin);
+  // Skipping kills ffmpeg first; yt-dlp then writes into a closed pipe.
+  ffmpeg.stdin.on('error', () => {});
+
+  let lastError = '';
+  ytdlp.stderr.on('data', (data) => {
+    const errorLine = data
+      .toString()
+      .split('\n')
+      .find((line: string) => line.startsWith('ERROR:'));
+    if (errorLine) lastError = errorLine.trim();
+  });
+  ffmpeg.stderr.on('data', (data) => {
+    console.error(`ffmpeg stderr: ${data}`);
+  });
+
+  // 'exit', not 'close': close waits for stdout to drain, which playback holds back.
+  let ytdlpCode: number | null | undefined;
+  ytdlp.on('exit', (code) => {
+    ytdlpCode = code;
+  });
+  ytdlp.on('error', (error) => {
+    lastError = `yt-dlp process error: ${error.message}`;
+  });
+
+  // Player destroyed the stream (skip/stop/end): clean up both processes.
+  ffmpeg.stdout.on('close', () => {
+    ffmpeg.kill();
+    ytdlp.kill();
+  });
+
+  // Resolves on the first decoded audio, rejects if yt-dlp dies before any.
+  const ready = new Promise<void>((resolve, reject) => {
+    const fail = () => reject(new Error(`yt-dlp stream failed${lastError ? `: ${lastError}` : ''}`));
+    ffmpeg.stdout.once('readable', () => {
+      if (ffmpeg.stdout.readableLength > 0) resolve();
     });
+    ytdlp.once('close', (code) => {
+      if (code !== 0) fail();
+    });
+    ytdlp.once('error', fail);
+    ffmpeg.once('close', fail);
+  });
 
-    return { stream: proc.stdout as Readable, type: 'arbitrary' };
-  } catch (error) {
-    throw new Error(`Failed to create yt-dlp stream: ${(error as Error).message}`);
-  }
+  return {
+    stream: ffmpeg.stdout,
+    ready,
+    // yt-dlp died on its own (network drop, expired URL), not because we killed it.
+    failed: () => ytdlpCode !== undefined && ytdlpCode !== 0 && !ytdlp.killed,
+  };
 }
 
 // Concurrent callers (play + background queue) share one download per file.
@@ -92,8 +147,8 @@ export async function downloadYouTubeToMp3(
   progressCallback?: (progress: DownloadProgress) => void,
 ): Promise<YtdlpDownloadResult> {
   const videoId = extractVideoId(url);
-  const musicDir = join(homedir(), 'music-bot', 'mp3');
-  const outputPath = join(musicDir, `${videoId}.mp3`);
+  const outputPath = cachedMp3Path(url);
+  const musicDir = dirname(outputPath);
 
   const existing = inFlight.get(outputPath);
   if (existing) {

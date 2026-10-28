@@ -30,6 +30,10 @@ export interface MusicQueue {
   radioPool?: VideoInfo[];
   /** URL of the last radio pick; a different lastSong means the user queued something new. */
   radioPickUrl?: string;
+  /** Set while the current song streams; reports whether yt-dlp died mid-song. */
+  streamFailed?: (() => boolean) | undefined;
+  /** Mid-song stream resumes for the current song, capped to avoid loops. */
+  streamResumes?: number;
 }
 
 export interface MusicManager {

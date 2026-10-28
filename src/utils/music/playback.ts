@@ -7,9 +7,9 @@ import { backgroundDownloader } from '../backgroundDownloader';
 
 import { Song } from '@/types/music';
 
-import { createAudioResource } from '@discordjs/voice';
+import { createAudioResource, StreamType } from '@discordjs/voice';
 
-import { downloadYouTubeToMp3, getRelatedVideo } from '@/utils/ytdlp';
+import { cachedMp3Path, createYtdlpAudioStream, getRelatedVideo } from '@/utils/ytdlp';
 
 import { createReadStream, existsSync } from 'fs';
 
@@ -72,6 +72,8 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
   // Update last played song
   queue.lastSong = song;
   queue.seekOffsetMs = seekMs;
+  queue.streamFailed = undefined;
+  if (seekMs === 0) queue.streamResumes = 0;
 
   // Add to history and keep max 20
   if (song.url) {
@@ -92,33 +94,26 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
       throw new Error(`Invalid or undefined song URL: ${song.url ?? 'undefined'}`);
     }
 
-    // Download MP3 file first using native yt-dlp
-    Logger.info(`Downloading MP3 for: ${song.title}`);
     const progressCallback = manager.progressCallbacks.get(guildId);
-    Logger.debug(`Progress callback ${progressCallback ? 'found' : 'NOT found'} for guild: ${guildId}`);
-    const downloadResult = await downloadYouTubeToMp3(song.url, progressCallback);
+    const filePath = cachedMp3Path(song.url);
 
-    // Remove progress callback after download completes
-    if (progressCallback) {
-      Logger.debug(`Removing progress callback after download complete for guild: ${guildId}`);
-      manager.removeProgressCallback(guildId);
-    }
-
-    // Ensure file exists before attempting to play
-    if (!existsSync(downloadResult.filePath)) {
-      throw new Error(`Downloaded file not found: ${downloadResult.filePath}`);
-    }
-
-    Logger.info(`MP3 downloaded successfully: ${downloadResult.filePath}`);
-
-    // Create audio resource from the downloaded MP3 file
+    // Cached songs play from disk; anything else streams straight away while the
+    // background downloader caches queued songs for later.
     let resource;
-    if (seekMs > 0) {
+    if (!existsSync(filePath)) {
+      Logger.info(`Streaming: ${song.title}${seekMs > 0 ? ` from ${seekMs / 1000}s` : ''}`);
+      const result = createYtdlpAudioStream(song.url, seekMs);
+      await result.ready;
+      progressCallback?.({ percentage: 100, downloaded: 'Streaming', total: 'Streaming', speed: 'Live', eta: '00:00' });
+      queue.streamFailed = result.failed;
+      resource = createAudioResource(result.stream, { inputType: StreamType.Raw });
+    } else if (seekMs > 0) {
+      progressCallback?.({ percentage: 100, downloaded: 'Cached', total: 'Cached', speed: 'Instant', eta: '00:00' });
       const seekSeconds = seekMs / 1000;
       Logger.info(`Seeking to ${seekSeconds}s for ${song.title}`);
       const ffmpeg = spawn('ffmpeg', [
         '-ss', seekSeconds.toString(),
-        '-i', downloadResult.filePath,
+        '-i', filePath,
         '-f', 'mp3',
         '-ar', '48000',
         '-ac', '2',
@@ -132,14 +127,13 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
         } catch (e) {}
       });
     } else {
-      const audioStream = createReadStream(downloadResult.filePath);
-      resource = createAudioResource(audioStream);
+      progressCallback?.({ percentage: 100, downloaded: 'Cached', total: 'Cached', speed: 'Instant', eta: '00:00' });
+      resource = createAudioResource(createReadStream(filePath));
     }
+    if (progressCallback) manager.removeProgressCallback(guildId);
 
     queue.player?.play(resource);
-    Logger.debug(
-      `musicManager.playNext: playing MP3 file ${downloadResult.filePath} for guild ${guildId}`,
-    );
+    Logger.debug(`musicManager.playNext: playing ${song.url} for guild ${guildId}`);
 
     // Save current playing state to Redis for crash recovery
     await manager.savePlayingStateToRedis(
@@ -189,8 +183,8 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
         errorMessage = '❌ Unable to extract audio. Skipping to next song...';
       } else if (error.message.includes('Age restricted')) {
         errorMessage = '❌ Age-restricted video. Skipping to next song...';
-      } else if (error.message.includes('Downloaded file not found')) {
-        errorMessage = '❌ Failed to download audio file. Skipping to next song...';
+      } else if (error.message.includes('yt-dlp stream failed')) {
+        errorMessage = '❌ Failed to stream audio. Skipping to next song...';
       }
     }
 

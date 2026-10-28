@@ -2,7 +2,10 @@ import { Readable } from 'stream';
 
 export interface YtdlpStreamResult {
   stream: Readable;
-  type: 'arbitrary';
+  /** Resolves on the first decoded audio; rejects if yt-dlp fails before any. */
+  ready: Promise<void>;
+  /** True once yt-dlp exited with an error on its own, e.g. a mid-song network drop. */
+  failed: () => boolean;
 }
 
 export interface YtdlpDownloadResult {

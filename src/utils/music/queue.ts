@@ -61,8 +61,18 @@ export async function createQueue(manager: any, guildId: string, voiceChannel: V
     Logger.debug(`AutoPaused audio in guild ${guildId}`);
   });
 
-  player.on(AudioPlayerStatus.Idle, async() => {
+  player.on(AudioPlayerStatus.Idle, async(oldState) => {
     queue.playing = false;
+
+    // A stream that broke mid-song resumes where it stopped instead of skipping.
+    if (queue.streamFailed?.() && queue.lastSong && (queue.streamResumes ?? 0) < 3) {
+      const playedMs = queue.seekOffsetMs + ('resource' in oldState ? oldState.resource.playbackDuration : 0);
+      queue.streamResumes = (queue.streamResumes ?? 0) + 1;
+      Logger.warn(`Stream broke in guild ${guildId}, resuming ${queue.lastSong.title} at ${playedMs}ms`);
+      queue.songs.unshift(queue.lastSong);
+      manager.playNext(guildId, playedMs);
+      return;
+    }
 
     // Clear current playing state when song ends
     await redisManager.deletePlayingState(guildId, voiceChannel.id);
