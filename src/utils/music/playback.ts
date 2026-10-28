@@ -15,6 +15,8 @@ import { createReadStream, existsSync } from 'fs';
 
 import { spawn } from 'child_process';
 
+import { deleteNowPlaying, refreshNowPlaying, retireNowPlaying, showNowPlaying } from './nowPlaying';
+
 /**
    * Play the next song in the queue.
    * @param {string} guildId - The guild ID.
@@ -22,6 +24,7 @@ import { spawn } from 'child_process';
 export async function playNext(manager: any, guildId: string, seekMs: number = 0): Promise<void> {
   const queue = manager.getQueue(guildId);
   if (!queue) return;
+  queue.stopped = false;
 
   if (queue.songs.length === 0) {
     if (queue.autoplay && queue.lastSong) {
@@ -46,9 +49,6 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
           };
           queue.songs.push(song);
           Logger.info(`Autoplay: Added ${song.title} to queue`);
-          await queue.textChannel.send({
-            content: `📻 **Radio:** Up next **${song.title}**`,
-          } as unknown as import('discord.js').MessageCreateOptions);
           return manager.playNext(guildId);
         }
       } catch (error) {
@@ -57,6 +57,7 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
     }
 
     Logger.info(`No more songs in queue for guild ${guildId}`);
+    await retireNowPlaying(queue);
     return;
   }
 
@@ -68,6 +69,9 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
 
   const song = queue.songs.shift();
   if (!song) return;
+
+  // Same song continuing after a broken stream keeps its Now Playing message.
+  const isStreamResume = seekMs > 0 && !!queue.nowPlayingMessage && queue.lastSong?.url === song.url;
 
   // Update last played song
   queue.lastSong = song;
@@ -94,7 +98,6 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
       throw new Error(`Invalid or undefined song URL: ${song.url ?? 'undefined'}`);
     }
 
-    const progressCallback = manager.progressCallbacks.get(guildId);
     const filePath = cachedMp3Path(song.url);
 
     // Cached songs play from disk; anything else streams straight away while the
@@ -104,11 +107,9 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
       Logger.info(`Streaming: ${song.title}${seekMs > 0 ? ` from ${seekMs / 1000}s` : ''}`);
       const result = createYtdlpAudioStream(song.url, seekMs);
       await result.ready;
-      progressCallback?.({ percentage: 100, downloaded: 'Streaming', total: 'Streaming', speed: 'Live', eta: '00:00' });
       queue.streamFailed = result.failed;
       resource = createAudioResource(result.stream, { inputType: StreamType.Raw });
     } else if (seekMs > 0) {
-      progressCallback?.({ percentage: 100, downloaded: 'Cached', total: 'Cached', speed: 'Instant', eta: '00:00' });
       const seekSeconds = seekMs / 1000;
       Logger.info(`Seeking to ${seekSeconds}s for ${song.title}`);
       const ffmpeg = spawn('ffmpeg', [
@@ -127,10 +128,8 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
         } catch (e) {}
       });
     } else {
-      progressCallback?.({ percentage: 100, downloaded: 'Cached', total: 'Cached', speed: 'Instant', eta: '00:00' });
       resource = createAudioResource(createReadStream(filePath));
     }
-    if (progressCallback) manager.removeProgressCallback(guildId);
 
     queue.player?.play(resource);
     Logger.debug(`musicManager.playNext: playing ${song.url} for guild ${guildId}`);
@@ -145,30 +144,7 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
       queue.seekOffsetMs,
     );
 
-    const embed = {
-      color: 0x0099ff,
-      title: '🎵 Now Playing',
-      description: `**${song.title}**`,
-      fields: [
-        {
-          name: 'Duration',
-          value: song.duration,
-          inline: true,
-        },
-        {
-          name: 'Requested by',
-          value: song.requestedBy.username,
-          inline: true,
-        },
-      ],
-      thumbnail: {
-        url: song.thumbnail,
-      },
-    };
-
-    await queue.textChannel.send({
-      embeds: [embed],
-    } as unknown as import('discord.js').MessageCreateOptions);
+    if (!isStreamResume) await showNowPlaying(queue, song);
   } catch (error) {
     Logger.error(
       `Error playing song in guild ${guildId}: url=${song?.url ?? 'n/a'}`,
@@ -177,7 +153,7 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
 
     let errorMessage = '❌ An error occurred while trying to play this song. Skipping...';
     if (error instanceof Error) {
-      if (error.message.includes('Video unavailable')) {
+      if (/video (is )?unavailable/i.test(error.message)) {
         errorMessage = '❌ Video unavailable or private. Skipping to next song...';
       } else if (error.message.includes('Could not extract')) {
         errorMessage = '❌ Unable to extract audio. Skipping to next song...';
@@ -188,8 +164,10 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
       }
     }
 
+    // Drop a stale "Starting..." placeholder or the previous song's message.
+    await deleteNowPlaying(queue);
     await queue.textChannel.send({
-      content: errorMessage,
+      content: `${errorMessage}\n**${song.title}**`,
     } as unknown as import('discord.js').MessageCreateOptions);
     manager.playNext(guildId);
   }
@@ -218,6 +196,7 @@ export function pause(manager: any, guildId: string): void {
     queue.player.pause();
     queue.playing = false;
     Logger.debug(`Paused music in guild ${guildId}`);
+    void refreshNowPlaying(queue);
   }
 }
 
@@ -228,10 +207,16 @@ export function pause(manager: any, guildId: string): void {
    */
 export function resume(manager: any, guildId: string): void {
   const queue = manager.getQueue(guildId);
+  if (queue?.stopped) {
+    // Stopped, not paused: start the preserved queue again.
+    void manager.playNext(guildId);
+    return;
+  }
   if (queue?.player) {
     queue.player.unpause();
     queue.playing = true;
     Logger.debug(`Resumed music in guild ${guildId}`);
+    void refreshNowPlaying(queue);
   }
 }
 
@@ -243,8 +228,11 @@ export function resume(manager: any, guildId: string): void {
 export async function stop(manager: any, guildId: string): Promise<void> {
   const queue = manager.getQueue(guildId);
   if (queue?.player) {
+    // Tells the Idle handler not to advance to the next song.
+    queue.stopped = true;
     queue.player.stop();
     queue.playing = false;
+    await retireNowPlaying(queue);
 
     // Clear playing state from Redis since we stopped
     await redisManager.deletePlayingState(guildId, queue.voiceChannel.id);
@@ -304,6 +292,7 @@ export async function leaveVoice(manager: any, guildId: string): Promise<void> {
 
   // Stop any playing music
   if (queue.player) {
+    queue.stopped = true;
     queue.player.stop();
   }
 
@@ -312,8 +301,7 @@ export async function leaveVoice(manager: any, guildId: string): Promise<void> {
     queue.connection.destroy();
   }
 
-  // Remove progress callback if any
-  manager.removeProgressCallback(guildId);
+  await retireNowPlaying(queue);
 
   // Clear background downloads for this guild
   backgroundDownloader.clearGuildQueue(guildId);

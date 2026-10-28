@@ -1,5 +1,12 @@
 import { AudioPlayer, VoiceConnection } from '@discordjs/voice';
-import { VoiceBasedChannel, User, Message, MessagePayload, MessageCreateOptions } from 'discord.js';
+import {
+  VoiceBasedChannel,
+  User,
+  Message,
+  MessagePayload,
+  MessageCreateOptions,
+  BaseMessageOptions,
+} from 'discord.js';
 import { VideoInfo } from '@/utils/youtube/types';
 
 export interface MinimalTextChannel {
@@ -34,6 +41,16 @@ export interface MusicQueue {
   streamFailed?: (() => boolean) | undefined;
   /** Mid-song stream resumes for the current song, capped to avoid loops. */
   streamResumes?: number;
+  /** Current Now Playing message (or a "Starting..." placeholder) with the control buttons. */
+  nowPlayingMessage?: NowPlayingMessage | undefined;
+  /** Set by stop/clear/leave so the Idle handler doesn't advance to the next song. */
+  stopped?: boolean;
+}
+
+export interface NowPlayingMessage {
+  id: string;
+  edit: (options: BaseMessageOptions) => Promise<unknown>;
+  delete: () => Promise<unknown>;
 }
 
 export interface MusicManager {

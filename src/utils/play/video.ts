@@ -1,27 +1,29 @@
 import { CommandInteraction, EmbedBuilder, VoiceBasedChannel } from 'discord.js';
 import { Logger } from '@/utils/logger';
-import { getVideoInfo } from '@/utils/youtube';
+import { getVideoInfo, VideoInfo } from '@/utils/youtube';
 import { Song, MinimalTextChannel } from '@/types/music';
 import { musicManager } from '@/utils/music';
-import { setupDownloadProgressCallback } from './progress';
+import { retireNowPlaying } from '@/utils/music/nowPlaying';
 
 /**
  * Handles single video play request
  * @param {string} url - Video URL
  * @param {CommandInteraction} interaction - Command interaction
  * @param {VoiceBasedChannel} voiceChannel - Connected voice channel
+ * @param {VideoInfo} knownInfo - Info already fetched by a search, skips a second extraction
  */
 export async function handleSingleVideo(
   url: string,
   interaction: CommandInteraction,
   voiceChannel: VoiceBasedChannel,
+  knownInfo?: VideoInfo,
 ): Promise<void> {
   if (!interaction.guild) return;
 
   Logger.debug(`play: fetching video_info for url=${url}`);
-  let videoInfo;
+  let videoInfo = knownInfo;
   try {
-    videoInfo = await getVideoInfo(url);
+    videoInfo ??= await getVideoInfo(url);
     Logger.debug(`play: info.id=${videoInfo.id}, title="${videoInfo.title}"`);
     Logger.debug(`play: duration=${videoInfo.duration}, thumbnail=${!!videoInfo.thumbnail}`);
   } catch (videoInfoError) {
@@ -56,38 +58,30 @@ export async function handleSingleVideo(
     );
   }
 
-  // Show initial "Added to Queue" message
-  const initialEmbed = new EmbedBuilder()
-    .setColor(0x00ff00)
-    .setTitle('✅ Added to Queue')
-    .setDescription(`**${song.title}**`)
-    .addFields(
-      {
-        name: 'Duration',
-        value: song.duration,
-        inline: true,
-      },
-      {
-        name: 'Position in Queue',
-        value: (queue.songs.length + 1).toString(), // +1 because we haven't added yet
-        inline: true,
-      },
-      {
-        name: 'Requested by',
-        value: song.requestedBy.username,
-        inline: true,
-      },
-    )
-    .setThumbnail(song.thumbnail)
-    .setTimestamp();
-
-  Logger.debug('Sending initial "Added to Queue" embed...');
-  await interaction.editReply({ embeds: [initialEmbed] });
-  Logger.debug('Initial embed sent successfully');
-
-  // Set up progress callback BEFORE adding song to queue if first song
-  if (queue.songs.length === 0) {
-    setupDownloadProgressCallback(interaction.guild.id, song.title, interaction);
+  if (!queue.playing && queue.songs.length === 0) {
+    // Starts right away: this reply becomes a placeholder that the Now Playing
+    // message replaces, instead of a separate "Added to Queue" message.
+    await retireNowPlaying(queue);
+    await interaction.editReply({ content: `⏳ Starting **${song.title}**...`, embeds: [] });
+    const placeholder = await interaction.fetchReply();
+    queue.nowPlayingMessage = {
+      id: placeholder.id,
+      edit: (options) => interaction.editReply(options),
+      delete: () => interaction.deleteReply(),
+    };
+  } else {
+    const embed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle('✅ Added to Queue')
+      .setDescription(`**${song.title}**`)
+      .addFields(
+        { name: 'Duration', value: song.duration, inline: true },
+        { name: 'Position in Queue', value: (queue.songs.length + 1).toString(), inline: true },
+        { name: 'Requested by', value: song.requestedBy.username, inline: true },
+      )
+      .setThumbnail(song.thumbnail)
+      .setTimestamp();
+    await interaction.editReply({ embeds: [embed] });
   }
 
   // Add song to queue (this may trigger download if first song)

@@ -1,11 +1,18 @@
 import { Events, Interaction, MessageFlags } from 'discord.js';
 import { BotEvent, ExtendedClient } from '@/types';
 import { Logger } from '@/utils/logger';
+import { handleNowPlayingButton } from '@/utils/play/controls';
 
 const event: BotEvent = {
   name: Events.InteractionCreate,
   async execute(...args: unknown[]) {
     const [interaction] = args as [Interaction];
+    if (interaction.isButton() && interaction.customId.startsWith('np:')) {
+      await handleNowPlayingButton(interaction).catch((error) =>
+        Logger.error(`Error handling button ${interaction.customId}:`, error as Error),
+      );
+      return;
+    }
     if (!interaction.isChatInputCommand()) return;
 
     const client = interaction.client as ExtendedClient;

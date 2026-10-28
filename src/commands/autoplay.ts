@@ -2,6 +2,7 @@ import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 import { validateVoiceConnection } from '@/utils/commandHelper';
+import { refreshNowPlaying } from '@/utils/music/nowPlaying';
 
 const command: Command = {
   data: new SlashCommandBuilder()
@@ -25,6 +26,8 @@ const command: Command = {
     }
 
     queue.autoplay = !queue.autoplay;
+    await musicManager.saveQueue(interaction.guild.id);
+    await refreshNowPlaying(queue);
 
     await interaction.reply({
       content: `🔄 Autoplay is now **${queue.autoplay ? 'enabled' : 'disabled'}**!`,

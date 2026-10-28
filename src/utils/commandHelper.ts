@@ -1,15 +1,15 @@
-import { CommandInteraction, GuildMember, MessageFlags, VoiceBasedChannel } from 'discord.js';
+import { ButtonInteraction, CommandInteraction, GuildMember, MessageFlags, VoiceBasedChannel } from 'discord.js';
 
 /**
  * Validates that the user is in a voice channel, and if the bot is also in a voice channel,
  * verifies they are in the same channel.
  *
- * @param {CommandInteraction} interaction - The command interaction.
+ * @param {CommandInteraction | ButtonInteraction} interaction - The command or button interaction.
  * @param {boolean} checkSameChannel - Whether to check if user is in the same channel as the bot.
  * @return {Promise<VoiceBasedChannel | null>} The user's voice channel if validation passes, null otherwise.
  */
 export async function validateVoiceConnection(
-  interaction: CommandInteraction,
+  interaction: CommandInteraction | ButtonInteraction,
   checkSameChannel: boolean = true,
 ): Promise<VoiceBasedChannel | null> {
   if (!interaction.guild) {

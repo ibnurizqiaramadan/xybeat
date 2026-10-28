@@ -3,7 +3,6 @@ import { Logger } from '@/utils/logger';
 import { getPlaylistInfo } from '@/utils/youtube';
 import { Song, MinimalTextChannel } from '@/types/music';
 import { musicManager } from '@/utils/music';
-import { setupDownloadProgressCallback } from './progress';
 
 /**
  * Handles playlist URL play request
@@ -43,13 +42,6 @@ export async function handlePlaylist(
       voiceChannel,
       interaction.channel as unknown as MinimalTextChannel,
     );
-  }
-
-  // Set up progress callback for the first song if queue is empty
-  const firstSong = playlistVideos[0];
-  if (queue.songs.length === 0 && firstSong) {
-    Logger.debug('Setting up progress callback for playlist first song');
-    setupDownloadProgressCallback(interaction.guild.id, firstSong.title, interaction);
   }
 
   // Convert all videos to songs and add to queue efficiently

@@ -6,12 +6,10 @@ import { generateDependencyReport } from '@discordjs/voice';
 import * as state from './state';
 import * as playback from './playback';
 import * as queue from './queue';
-import { DownloadProgress } from '@/utils/ytdlp';
 import { PlayingState } from './types';
 
 class MusicManagerImpl implements MusicManager {
   public queues = new Map<string, MusicQueue>();
-  public progressCallbacks = new Map<string, (progress: DownloadProgress) => void>();
 
   constructor() {
     Logger.info('Voice dependencies report:', generateDependencyReport());
@@ -52,23 +50,6 @@ class MusicManagerImpl implements MusicManager {
    */
   async playNext(guildId: string, seekMs: number = 0): Promise<void> {
     return playback.playNext(this, guildId, seekMs);
-  }
-
-  /**
-   * Set progress callback for a guild
-   * @param {string} guildId - The guild ID
-   * @param {Function} callback - Progress callback function
-   */
-  setProgressCallback(guildId: string, callback: (progress: DownloadProgress) => void): void {
-    return queue.setProgressCallback(this, guildId, callback);
-  }
-
-  /**
-   * Remove progress callback for a guild
-   * @param {string} guildId - The guild ID
-   */
-  removeProgressCallback(guildId: string): void {
-    return queue.removeProgressCallback(this, guildId);
   }
 
   /**

@@ -48,8 +48,9 @@ const command: Command = {
       .replace(/^<+|>+$/g, '');
     Logger.debug(`play: raw="${rawQuery}", sanitized="${query}"`);
 
-    const url = await resolveQuery(query, interaction);
-    if (!url) return;
+    const resolved = await resolveQuery(query, interaction);
+    if (!resolved) return;
+    const { url, info } = resolved;
 
     // Final guard to ensure url is a valid YouTube URL
     if (!isValidYouTubeUrl(url)) {
@@ -64,7 +65,7 @@ const command: Command = {
       if (isPlaylistUrl(url)) {
         await handlePlaylist(url, interaction, voiceChannel);
       } else {
-        await handleSingleVideo(url, interaction, voiceChannel);
+        await handleSingleVideo(url, interaction, voiceChannel, info);
       }
     } catch (error) {
       Logger.error('Error in play command', error as Error);

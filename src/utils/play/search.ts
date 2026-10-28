@@ -8,7 +8,13 @@ import {
   ComponentType,
 } from 'discord.js';
 import { Logger } from '@/utils/logger';
-import { isValidYouTubeUrl, searchYouTube, searchYouTubeMultiple } from '@/utils/youtube';
+import { isValidYouTubeUrl, searchYouTube, searchYouTubeMultiple, VideoInfo } from '@/utils/youtube';
+
+export interface ResolvedQuery {
+  url: string;
+  /** Present when the query was a search; reused so the video isn't extracted twice. */
+  info?: VideoInfo;
+}
 import { handleSingleVideo } from './video';
 
 /**
@@ -71,6 +77,7 @@ export async function handleSearch(
 
     const selectedUrl = confirmation.values[0];
     if (!selectedUrl) return;
+    const selected = results.find((video) => video.url === selectedUrl);
 
     await confirmation.update({
       content: '⌛ Processing your selection...',
@@ -78,7 +85,7 @@ export async function handleSearch(
       components: [],
     });
 
-    await handleSingleVideo(selectedUrl, interaction, voiceChannel);
+    await handleSingleVideo(selectedUrl, interaction, voiceChannel, selected);
   } catch (error) {
     Logger.debug('Search selection timed out or cancelled');
     await interaction.editReply({
@@ -93,14 +100,14 @@ export async function handleSearch(
  * Resolves query by verifying if it is a valid URL or searching YouTube
  * @param {string} query - Clean query
  * @param {CommandInteraction} interaction - Command interaction
- * @return {Promise<string | null>} The resolved video/playlist URL, or null if error occurred
+ * @return {Promise<ResolvedQuery | null>} The resolved URL (plus info when searched), or null if error occurred
  */
-export async function resolveQuery(query: string, interaction: CommandInteraction): Promise<string | null> {
+export async function resolveQuery(query: string, interaction: CommandInteraction): Promise<ResolvedQuery | null> {
   const isValidUrl = isValidYouTubeUrl(query);
   Logger.debug(`play: isValidYouTubeUrl(query)=${isValidUrl}`);
 
   if (isValidUrl) {
-    return query;
+    return { url: query };
   }
 
   // Try searching the query on YouTube
@@ -114,5 +121,5 @@ export async function resolveQuery(query: string, interaction: CommandInteractio
   }
 
   Logger.debug(`play: found search result: ${searchResult.title}`);
-  return searchResult.url;
+  return { url: searchResult.url, info: searchResult };
 }

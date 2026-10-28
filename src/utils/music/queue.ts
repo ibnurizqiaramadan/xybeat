@@ -12,7 +12,7 @@ import { joinVoiceChannel, createAudioPlayer, AudioPlayerStatus } from '@discord
 
 import { VoiceBasedChannel } from 'discord.js';
 import { VoiceConnectionStatus } from '@discordjs/voice';
-import { DownloadProgress } from '@/utils/ytdlp';
+import { refreshNowPlaying, retireNowPlaying } from './nowPlaying';
 
 /**
    * Create a new music queue for a guild.
@@ -63,6 +63,8 @@ export async function createQueue(manager: any, guildId: string, voiceChannel: V
 
   player.on(AudioPlayerStatus.Idle, async(oldState) => {
     queue.playing = false;
+    // Stopped by /stop, /clear or /leave: keep the queue, don't advance.
+    if (queue.stopped) return;
 
     // A stream that broke mid-song resumes where it stopped instead of skipping.
     if (queue.streamFailed?.() && queue.lastSong && (queue.streamResumes ?? 0) < 3) {
@@ -122,33 +124,13 @@ export function deleteQueue(manager: any, guildId: string): void {
       queue.connection.destroy();
     }
     if (queue.player) {
+      queue.stopped = true;
       queue.player.stop();
     }
     manager.queues.delete(guildId);
-    // Also remove progress callback
-    manager.removeProgressCallback(guildId);
+    void retireNowPlaying(queue);
     Logger.info(`Deleted music queue for guild ${guildId}`);
   }
-}
-
-
-/**
-   * Set progress callback for a guild
-   * @param {string} guildId - The guild ID
-   * @param {Function} callback - Progress callback function
-   */
-export function setProgressCallback(manager: any, guildId: string, callback: (progress: DownloadProgress) => void): void {
-  Logger.debug(`Setting progress callback for guild: ${guildId}`);
-  manager.progressCallbacks.set(guildId, callback);
-}
-
-
-/**
-   * Remove progress callback for a guild
-   * @param {string} guildId - The guild ID
-   */
-export function removeProgressCallback(manager: any, guildId: string): void {
-  manager.progressCallbacks.delete(guildId);
 }
 
 
@@ -170,12 +152,14 @@ export async function addSong(manager: any, guildId: string, song: Song): Promis
   // Give higher priority to the next song in queue
   manager.triggerBackgroundDownloads(guildId);
 
-  if (!queue.playing && queue.songs.length === 1) {
+  if (!queue.playing && (queue.songs.length === 1 || queue.stopped)) {
     // Try to resume from crash first
     const resumed = await manager.resumeFromCrash(guildId);
     if (!resumed) {
       await manager.playNext(guildId);
     }
+  } else {
+    await refreshNowPlaying(queue);
   }
 }
 
@@ -198,12 +182,14 @@ export async function addSongs(manager: any, guildId: string, songs: Song[]): Pr
   // Trigger background download for all new songs
   manager.triggerBackgroundDownloads(guildId);
 
-  if (!queue.playing && wasEmpty && queue.songs.length > 0) {
+  if (!queue.playing && (wasEmpty || queue.stopped) && queue.songs.length > 0) {
     // Try to resume from crash first
     const resumed = await manager.resumeFromCrash(guildId);
     if (!resumed) {
       await manager.playNext(guildId);
     }
+  } else {
+    await refreshNowPlaying(queue);
   }
 }
 
@@ -246,8 +232,10 @@ export async function clearQueue(manager: any, guildId: string): Promise<void> {
     queue.songs = [];
     queue.playing = false;
     if (queue.player) {
+      queue.stopped = true;
       queue.player.stop();
     }
+    await retireNowPlaying(queue);
 
     // Clear background downloads for this guild
     backgroundDownloader.clearGuildQueue(guildId);
@@ -304,6 +292,7 @@ export async function shuffleQueue(manager: any, guildId: string): Promise<numbe
 
   // Retrigger background downloads with new order
   manager.triggerBackgroundDownloads(guildId);
+  await refreshNowPlaying(queue);
 
   Logger.info(`Shuffled ${songsToShuffle.length} songs in guild ${guildId}`);
   return songsToShuffle.length;
