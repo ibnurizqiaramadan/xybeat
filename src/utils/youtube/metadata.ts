@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { spawn } from 'child_process';
 import { Logger } from '../logger';
 import { formatDuration } from '../timeFormat';
 import { VideoInfo } from './types';
 import { searchYouTube, searchYouTubeMultiple } from './search';
 import { extractVideoId } from './validation';
-import { proxyArgs } from './download';
+import { spawnYtdlp } from './binary';
 
 /**
  * Get playlist information using yt-dlp
@@ -22,8 +21,7 @@ export async function getPlaylistInfo(url: string): Promise<VideoInfo[]> {
       playlistUrl = `https://www.youtube.com/playlist?list=${playlistId}`;
     }
 
-    const ytdlp = spawn('/snap/bin/yt-dlp', [
-      ...proxyArgs(),
+    const ytdlp = spawnYtdlp([
       '--dump-json',
       '--no-warnings',
       '--flat-playlist',
@@ -85,7 +83,7 @@ export async function getPlaylistInfo(url: string): Promise<VideoInfo[]> {
                 title: videoData.title,
                 url: `https://www.youtube.com/watch?v=${videoData.id}`,
                 duration: formatDuration(videoData.duration || 0),
-                thumbnail: videoData.thumbnail || '',
+                thumbnail: videoData.thumbnail || `https://i.ytimg.com/vi/${videoData.id}/hqdefault.jpg`,
               };
               videos.push(videoInfo);
             }
@@ -140,7 +138,7 @@ async function getSingleVideoAsPlaylist(videoId: string): Promise<VideoInfo[]> {
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo> {
   return new Promise((resolve, reject) => {
-    const ytdlp = spawn('/snap/bin/yt-dlp', [...proxyArgs(), '--dump-json', '--no-warnings', url]);
+    const ytdlp = spawnYtdlp(['--dump-json', '--no-warnings', url]);
 
     let output = '';
     let errorOutput = '';
@@ -166,7 +164,7 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
           title: videoData.title || 'Unknown Title',
           url: videoData.webpage_url || url,
           duration: formatDuration(videoData.duration || 0),
-          thumbnail: videoData.thumbnail || '',
+          thumbnail: videoData.thumbnail || `https://i.ytimg.com/vi/${videoData.id}/hqdefault.jpg`,
         };
         resolve(videoInfo);
       } catch (error) {
@@ -181,102 +179,24 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
 }
 
 /**
- * Get related video info for a given video
+ * Get related video info for a given video.
+ * yt-dlp no longer returns related_videos for YouTube, so search by title instead.
  * @param {string} url - Current video URL
+ * @param {string} title - Current video title
  * @param {string[]} history - Array of previously played video URLs
  * @return {Promise<VideoInfo | null>} A related video or null
  */
-export async function getRelatedVideo(url: string, history: string[] = []): Promise<VideoInfo | null> {
-  return new Promise((resolve, reject) => {
-    // We use --dump-json to get related videos from the info dict
-    const ytdlp = spawn('/snap/bin/yt-dlp', [
-      ...proxyArgs(),
-      '--dump-json',
-      '--no-warnings',
-      '--flat-playlist',
-      url,
-    ]);
+export async function getRelatedVideo(url: string, title: string, history: string[] = []): Promise<VideoInfo | null> {
+  const toId = (u: string) => {
+    try {
+      return extractVideoId(u);
+    } catch {
+      return u;
+    }
+  };
+  const playedIds = new Set([...history.map(toId), toId(url)]);
 
-    let output = '';
-
-    ytdlp.stdout.on('data', (data) => {
-      output += data.toString();
-    });
-
-    ytdlp.on('close', async(_code) => {
-      try {
-        if (!output.trim()) {
-          resolve(null);
-          return;
-        }
-
-        const info = JSON.parse(output);
-        const related = info.related_videos;
-
-        // Extract IDs for robust comparison
-        const historyIds = history.map((h) => {
-          try {
-            return extractVideoId(h);
-          } catch {
-            return h;
-          }
-        });
-        const currentId = (() => {
-          try {
-            return extractVideoId(url);
-          } catch {
-            return url;
-          }
-        })();
-
-        if (related && Array.isArray(related) && related.length > 0) {
-          // Filter out videos that are in history
-          const unplayedRelated = related.filter((r) => {
-            if (!r.id) return false;
-            return !historyIds.includes(r.id) && r.id !== currentId;
-          });
-
-          // Pick the first unplayed related video
-          const firstRelated = unplayedRelated[0];
-          if (firstRelated) {
-            resolve({
-              id: firstRelated.id,
-              title: firstRelated.title || 'Unknown Title',
-              url: `https://www.youtube.com/watch?v=${firstRelated.id}`,
-              duration: formatDuration(firstRelated.duration || 0),
-              thumbnail: firstRelated.thumbnail || '',
-            });
-            return;
-          }
-        }
-
-        // Fallback: search for related to the title using multiple results to filter history
-        Logger.debug(`No related videos found in JSON for ${url}, using fallback search`);
-        const searchResults = await searchYouTubeMultiple(`similar songs to ${info.title} music genre`);
-
-        // Filter out videos that are in history
-        const unplayedSearchResults = searchResults.filter((r) => {
-          if (!r.id) return false;
-          return !historyIds.includes(r.id) && r.id !== currentId;
-        });
-
-        if (unplayedSearchResults.length > 0 && unplayedSearchResults[0]) {
-          resolve(unplayedSearchResults[0]);
-        } else if (searchResults.length > 0 && searchResults[0]) {
-          // Absolute fallback if everything is in history
-          resolve(searchResults[0]);
-        } else {
-          resolve(null);
-        }
-      } catch (error) {
-        // Fallback search if parsing fails
-        Logger.debug(`Failed to parse related videos for ${url}, using fallback search`);
-        resolve(null);
-      }
-    });
-
-    ytdlp.on('error', (error) => {
-      reject(new Error(`yt-dlp related process error: ${error.message}`));
-    });
-  });
+  const searchResults = await searchYouTubeMultiple(`similar songs to ${title} music genre`);
+  // Absolute fallback to the first result if everything is in history
+  return searchResults.find((r) => r.id && !playedIds.has(r.id)) ?? searchResults[0] ?? null;
 }

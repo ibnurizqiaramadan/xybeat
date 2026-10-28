@@ -6,6 +6,7 @@ import { homedir } from 'os';
 import { Logger } from '../logger';
 import { DownloadProgress, YtdlpDownloadResult, YtdlpStreamResult } from './types';
 import { extractVideoId } from './validation';
+import { spawnYtdlp } from './binary';
 
 /**
  * Parse download progress from yt-dlp stderr output
@@ -43,19 +44,6 @@ export function parseDownloadProgress(data: string): DownloadProgress | null {
   };
 }
 
-// Snap yt-dlp ships without the EJS challenge solver; without it signature/n
-// challenges fail and most formats (incl. 18) are missing.
-const EJS_ARGS = ['--remote-components', 'ejs:github'];
-
-/**
- * Optional proxy for every yt-dlp call, e.g. Cloudflare WARP: socks5://127.0.0.1:40000.
- * Read lazily so dotenv has loaded before first use.
- * @return {string[]} Proxy args, empty when YTDLP_PROXY is unset
- */
-export function proxyArgs(): string[] {
-  return process.env.YTDLP_PROXY ? ['--proxy', process.env.YTDLP_PROXY] : [];
-}
-
 /**
  * Create an audio stream using native yt-dlp binary to be used by @discordjs/voice.
  * @param {string} url - Canonical YouTube video URL.
@@ -63,10 +51,8 @@ export function proxyArgs(): string[] {
  */
 export async function createYtdlpAudioStream(url: string): Promise<YtdlpStreamResult> {
   try {
-    const proc: ChildProcessWithoutNullStreams = spawn('/snap/bin/yt-dlp', [
+    const proc: ChildProcessWithoutNullStreams = spawnYtdlp([
       url,
-      ...EJS_ARGS,
-      ...proxyArgs(),
       '--format',
       'bestaudio[ext=webm]/bestaudio/best',
       '--output',
@@ -169,22 +155,18 @@ async function runDownload(
   // download is never mistaken for a cached one.
   const tmpPath = `${outputPath}.part`;
   try {
-    const ytdlp = spawn('/snap/bin/yt-dlp', [
-      ...EJS_ARGS,
-      ...proxyArgs(),
-      '-f',
-      'bestaudio/18/best',
-      '-o',
-      '-',
-      url,
-    ]);
-    const ffmpeg = spawn('/usr/bin/ffmpeg', ['-i', 'pipe:0', '-f', 'mp3', '-y', tmpPath]);
+    const ytdlp = spawnYtdlp(['-f', 'bestaudio/18/best', '-o', '-', url]);
+    const ffmpeg = spawn('/usr/bin/ffmpeg', ['-hide_banner', '-loglevel', 'error', '-i', 'pipe:0', '-f', 'mp3', '-y', tmpPath]);
 
     ytdlp.stdout.pipe(ffmpeg.stdin);
 
+    // Kept for the error message so callers can tell permanent failures from transient ones.
+    let lastError = '';
     ytdlp.stderr.on('data', (data) => {
       const dataStr = data.toString();
       console.error(`yt-dlp stderr: ${dataStr}`);
+      const errorLine = dataStr.split('\n').find((line: string) => line.startsWith('ERROR:'));
+      if (errorLine) lastError = errorLine.trim();
 
       const progress = parseDownloadProgress(dataStr);
       if (progress) {
@@ -199,7 +181,9 @@ async function runDownload(
 
     // Wait for both: ffmpeg can exit 0 on a truncated stream when yt-dlp fails mid-download.
     const [ytdlpCode, ffmpegCode] = await Promise.all([exitCode(ytdlp, 'yt-dlp'), exitCode(ffmpeg, 'ffmpeg')]);
-    if (ytdlpCode !== 0) throw new Error(`yt-dlp process exited with code ${ytdlpCode}`);
+    if (ytdlpCode !== 0) {
+      throw new Error(`yt-dlp process exited with code ${ytdlpCode}${lastError ? `: ${lastError}` : ''}`);
+    }
     if (ffmpegCode !== 0) throw new Error(`ffmpeg process exited with code ${ffmpegCode}`);
 
     await fs.rename(tmpPath, outputPath);

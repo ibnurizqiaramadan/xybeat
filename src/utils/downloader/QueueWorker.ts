@@ -6,6 +6,11 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { DownloadJob, DownloadStatus, DownloadConfig } from './types';
 
+// yt-dlp errors that a retry seconds later won't fix; retrying only burns requests
+// and invites more bot checks.
+const PERMANENT_ERROR =
+  /Video unavailable|Private video|has been removed|not available in your country|members-only|confirm your age|confirm you.re not a bot|Requested format is not available/i;
+
 /**
  * Background downloader for pre-downloading songs in queue.
  * This improves user experience by eliminating wait times for queued songs.
@@ -213,7 +218,12 @@ export class BackgroundDownloaderImpl {
       status.error = (error as Error).message;
 
       // Retry logic
-      if (job.retryCount < this.config.maxRetries) {
+      if (PERMANENT_ERROR.test(status.error)) {
+        Logger.warn(`Background download failed permanently, not retrying: ${job.song.title}`);
+        setTimeout(() => {
+          this.activeDownloads.delete(videoId);
+        }, 60000); // Keep failed status for 1 minute
+      } else if (job.retryCount < this.config.maxRetries) {
         await this.scheduleRetry(job);
       } else {
         Logger.warn(`Background download permanently failed after ${job.retryCount} retries: ${job.song.title}`);

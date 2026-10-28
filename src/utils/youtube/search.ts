@@ -1,7 +1,6 @@
-import { spawn } from 'child_process';
 import { formatDuration } from '../timeFormat';
 import { VideoInfo } from './types';
-import { proxyArgs } from './download';
+import { spawnYtdlp } from './binary';
 
 /**
  * Search YouTube videos using yt-dlp and return multiple results
@@ -11,13 +10,13 @@ import { proxyArgs } from './download';
  */
 export async function searchYouTubeMultiple(query: string, limit: number = 5): Promise<VideoInfo[]> {
   return new Promise((resolve, reject) => {
-    const ytdlp = spawn('/snap/bin/yt-dlp', [
-      ...proxyArgs(),
+    const ytdlp = spawnYtdlp([
       '--dump-json',
       '--no-warnings',
-      '--playlist-end',
-      limit.toString(),
-      `ytsearch:${query}`,
+      // Flat entries skip per-video extraction: one request instead of one per result.
+      '--flat-playlist',
+      // Plain "ytsearch:" means ytsearch1, so the count must be in the prefix.
+      `ytsearch${limit}:${query}`,
     ]);
 
     let output = '';
@@ -48,7 +47,7 @@ export async function searchYouTubeMultiple(query: string, limit: number = 5): P
             title: videoData.title || 'Unknown Title',
             url: videoData.webpage_url || `https://www.youtube.com/watch?v=${videoData.id}`,
             duration: formatDuration(videoData.duration || 0),
-            thumbnail: videoData.thumbnail || '',
+            thumbnail: videoData.thumbnail || `https://i.ytimg.com/vi/${videoData.id}/hqdefault.jpg`,
           });
         }
         resolve(results);

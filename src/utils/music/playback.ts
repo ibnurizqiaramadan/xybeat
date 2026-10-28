@@ -27,7 +27,7 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
     if (queue.autoplay && queue.lastSong) {
       Logger.info(`Autoplay: Finding related song for ${queue.lastSong.title}`);
       try {
-        const related = await getRelatedVideo(queue.lastSong.url, queue.history);
+        const related = await getRelatedVideo(queue.lastSong.url, queue.lastSong.title, queue.history);
         if (related) {
           const song: Song = {
             title: related.title,
