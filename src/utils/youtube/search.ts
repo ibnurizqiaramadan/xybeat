@@ -3,21 +3,15 @@ import { VideoInfo } from './types';
 import { spawnYtdlp } from './binary';
 
 /**
- * Search YouTube videos using yt-dlp and return multiple results
- * @param {string} query - Search query
- * @param {number} limit - Number of results to return
- * @return {Promise<VideoInfo[]>} Search results
+ * List videos of a search or playlist target without extracting each video.
+ * Flat entries skip per-video extraction: one request instead of one per result.
+ * @param {string} target - yt-dlp target, e.g. "ytsearch5:query" or a playlist URL
+ * @param {string[]} extraArgs - Additional yt-dlp arguments
+ * @return {Promise<VideoInfo[]>} Listed videos
  */
-export async function searchYouTubeMultiple(query: string, limit: number = 5): Promise<VideoInfo[]> {
+export async function flatListing(target: string, extraArgs: string[] = []): Promise<VideoInfo[]> {
   return new Promise((resolve, reject) => {
-    const ytdlp = spawnYtdlp([
-      '--dump-json',
-      '--no-warnings',
-      // Flat entries skip per-video extraction: one request instead of one per result.
-      '--flat-playlist',
-      // Plain "ytsearch:" means ytsearch1, so the count must be in the prefix.
-      `ytsearch${limit}:${query}`,
-    ]);
+    const ytdlp = spawnYtdlp(['--dump-json', '--no-warnings', '--flat-playlist', ...extraArgs, target]);
 
     let output = '';
     let errorOutput = '';
@@ -32,7 +26,7 @@ export async function searchYouTubeMultiple(query: string, limit: number = 5): P
 
     ytdlp.on('close', (code) => {
       if (code !== 0) {
-        reject(new Error(`yt-dlp search failed with code ${code}: ${errorOutput}`));
+        reject(new Error(`yt-dlp listing failed with code ${code}: ${errorOutput}`));
         return;
       }
 
@@ -52,14 +46,25 @@ export async function searchYouTubeMultiple(query: string, limit: number = 5): P
         }
         resolve(results);
       } catch (error) {
-        reject(new Error(`Failed to parse search results: ${(error as Error).message}`));
+        reject(new Error(`Failed to parse listing results: ${(error as Error).message}`));
       }
     });
 
     ytdlp.on('error', (error) => {
-      reject(new Error(`yt-dlp search process error: ${error.message}`));
+      reject(new Error(`yt-dlp listing process error: ${error.message}`));
     });
   });
+}
+
+/**
+ * Search YouTube videos using yt-dlp and return multiple results
+ * @param {string} query - Search query
+ * @param {number} limit - Number of results to return
+ * @return {Promise<VideoInfo[]>} Search results
+ */
+export async function searchYouTubeMultiple(query: string, limit: number = 5): Promise<VideoInfo[]> {
+  // Plain "ytsearch:" means ytsearch1, so the count must be in the prefix.
+  return flatListing(`ytsearch${limit}:${query}`);
 }
 
 /**

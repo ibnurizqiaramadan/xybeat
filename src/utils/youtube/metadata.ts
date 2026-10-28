@@ -2,7 +2,7 @@
 import { Logger } from '../logger';
 import { formatDuration } from '../timeFormat';
 import { VideoInfo } from './types';
-import { searchYouTube, searchYouTubeMultiple } from './search';
+import { searchYouTube, searchYouTubeMultiple, flatListing } from './search';
 import { extractVideoId } from './validation';
 import { spawnYtdlp } from './binary';
 
@@ -179,14 +179,33 @@ export async function getVideoInfo(url: string): Promise<VideoInfo> {
 }
 
 /**
- * Get related video info for a given video.
- * yt-dlp no longer returns related_videos for YouTube, so search by title instead.
+ * Get the YouTube Mix (auto-generated radio playlist) for a video.
+ * @param {string} url - Seed video URL
+ * @param {number} limit - Max entries to fetch; Mix playlists page on almost endlessly
+ * @return {Promise<VideoInfo[]>} Mix entries, starting with the seed itself
+ */
+export async function getMixPlaylist(url: string, limit: number = 25): Promise<VideoInfo[]> {
+  const id = extractVideoId(url);
+  return flatListing(`https://www.youtube.com/watch?v=${id}&list=RD${id}`, ['--playlist-end', limit.toString()]);
+}
+
+/**
+ * Pick the next radio song for autoplay.
+ * Draws from the YouTube Mix of the current video and keeps the rest in `pool`,
+ * so following picks need no request. Falls back to a title search when the Mix
+ * is unavailable or exhausted.
  * @param {string} url - Current video URL
  * @param {string} title - Current video title
  * @param {string[]} history - Array of previously played video URLs
+ * @param {VideoInfo[]} pool - Remaining Mix entries; mutated: refilled when empty, pick removed
  * @return {Promise<VideoInfo | null>} A related video or null
  */
-export async function getRelatedVideo(url: string, title: string, history: string[] = []): Promise<VideoInfo | null> {
+export async function getRelatedVideo(
+  url: string,
+  title: string,
+  history: string[] = [],
+  pool: VideoInfo[] = [],
+): Promise<VideoInfo | null> {
   const toId = (u: string) => {
     try {
       return extractVideoId(u);
@@ -195,8 +214,23 @@ export async function getRelatedVideo(url: string, title: string, history: strin
     }
   };
   const playedIds = new Set([...history.map(toId), toId(url)]);
+  const unplayed = (videos: VideoInfo[]) => videos.filter((v) => v.id && !playedIds.has(v.id));
+
+  let candidates = unplayed(pool);
+  if (candidates.length === 0) {
+    try {
+      candidates = unplayed(await getMixPlaylist(url));
+    } catch (error) {
+      Logger.debug(`Mix unavailable for ${url}, using fallback search: ${(error as Error).message}`);
+    }
+  }
+
+  // Random pick among the top entries: varied, but still close to the seed.
+  const pick = candidates[Math.floor(Math.random() * Math.min(10, candidates.length))];
+  pool.splice(0, pool.length, ...candidates.filter((v) => v !== pick));
+  if (pick) return pick;
 
   const searchResults = await searchYouTubeMultiple(`similar songs to ${title} music genre`);
   // Absolute fallback to the first result if everything is in history
-  return searchResults.find((r) => r.id && !playedIds.has(r.id)) ?? searchResults[0] ?? null;
+  return unplayed(searchResults)[0] ?? searchResults[0] ?? null;
 }

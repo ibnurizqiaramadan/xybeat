@@ -1,5 +1,6 @@
 import { AudioPlayer, VoiceConnection } from '@discordjs/voice';
 import { VoiceBasedChannel, User, Message, MessagePayload, MessageCreateOptions } from 'discord.js';
+import { VideoInfo } from '@/utils/youtube/types';
 
 export interface MinimalTextChannel {
   send: (options: string | MessagePayload | MessageCreateOptions) => Promise<Message>;
@@ -25,6 +26,10 @@ export interface MusicQueue {
   lastSong: Song | null;
   history: string[];
   seekOffsetMs: number;
+  /** Remaining YouTube Mix entries for radio autoplay (in-memory only). */
+  radioPool?: VideoInfo[];
+  /** URL of the last radio pick; a different lastSong means the user queued something new. */
+  radioPickUrl?: string;
 }
 
 export interface MusicManager {

@@ -6,7 +6,7 @@ import { validateVoiceConnection } from '@/utils/commandHelper';
 const command: Command = {
   data: new SlashCommandBuilder()
     .setName('autoplay')
-    .setDescription('Toggle autoplay mode (plays related songs when queue ends)'),
+    .setDescription('Toggle radio mode (keeps playing a YouTube Mix of similar songs when queue ends)'),
 
   async execute(interaction: CommandInteraction) {
     if (!interaction.guild) return;

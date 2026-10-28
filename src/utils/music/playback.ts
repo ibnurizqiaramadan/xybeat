@@ -27,8 +27,16 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
     if (queue.autoplay && queue.lastSong) {
       Logger.info(`Autoplay: Finding related song for ${queue.lastSong.title}`);
       try {
-        const related = await getRelatedVideo(queue.lastSong.url, queue.lastSong.title, queue.history);
+        // A manually queued song re-seeds the radio from itself.
+        if (queue.radioPickUrl !== queue.lastSong.url) queue.radioPool = [];
+        const related = await getRelatedVideo(
+          queue.lastSong.url,
+          queue.lastSong.title,
+          queue.history,
+          queue.radioPool,
+        );
         if (related) {
+          queue.radioPickUrl = related.url;
           const song: Song = {
             title: related.title,
             url: related.url,
@@ -39,7 +47,7 @@ export async function playNext(manager: any, guildId: string, seekMs: number = 0
           queue.songs.push(song);
           Logger.info(`Autoplay: Added ${song.title} to queue`);
           await queue.textChannel.send({
-            content: `🔄 **Autoplay:** Found a related song: **${song.title}**`,
+            content: `📻 **Radio:** Up next **${song.title}**`,
           } as unknown as import('discord.js').MessageCreateOptions);
           return manager.playNext(guildId);
         }
