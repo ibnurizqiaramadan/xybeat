@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import { formatDuration } from '../timeFormat';
 import { VideoInfo } from './types';
+import { proxyArgs } from './download';
 
 /**
  * Search YouTube videos using yt-dlp and return multiple results
@@ -11,6 +12,7 @@ import { VideoInfo } from './types';
 export async function searchYouTubeMultiple(query: string, limit: number = 5): Promise<VideoInfo[]> {
   return new Promise((resolve, reject) => {
     const ytdlp = spawn('/snap/bin/yt-dlp', [
+      ...proxyArgs(),
       '--dump-json',
       '--no-warnings',
       '--playlist-end',

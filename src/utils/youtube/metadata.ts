@@ -5,6 +5,7 @@ import { formatDuration } from '../timeFormat';
 import { VideoInfo } from './types';
 import { searchYouTube, searchYouTubeMultiple } from './search';
 import { extractVideoId } from './validation';
+import { proxyArgs } from './download';
 
 /**
  * Get playlist information using yt-dlp
@@ -22,6 +23,7 @@ export async function getPlaylistInfo(url: string): Promise<VideoInfo[]> {
     }
 
     const ytdlp = spawn('/snap/bin/yt-dlp', [
+      ...proxyArgs(),
       '--dump-json',
       '--no-warnings',
       '--flat-playlist',
@@ -138,7 +140,7 @@ async function getSingleVideoAsPlaylist(videoId: string): Promise<VideoInfo[]> {
  */
 export async function getVideoInfo(url: string): Promise<VideoInfo> {
   return new Promise((resolve, reject) => {
-    const ytdlp = spawn('/snap/bin/yt-dlp', ['--dump-json', '--no-warnings', url]);
+    const ytdlp = spawn('/snap/bin/yt-dlp', [...proxyArgs(), '--dump-json', '--no-warnings', url]);
 
     let output = '';
     let errorOutput = '';
@@ -188,6 +190,7 @@ export async function getRelatedVideo(url: string, history: string[] = []): Prom
   return new Promise((resolve, reject) => {
     // We use --dump-json to get related videos from the info dict
     const ytdlp = spawn('/snap/bin/yt-dlp', [
+      ...proxyArgs(),
       '--dump-json',
       '--no-warnings',
       '--flat-playlist',
