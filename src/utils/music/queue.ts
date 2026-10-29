@@ -11,7 +11,7 @@ import { joinVoiceChannel, createAudioPlayer, AudioPlayerStatus } from '@discord
 
 
 import { VoiceBasedChannel } from 'discord.js';
-import { VoiceConnectionStatus } from '@discordjs/voice';
+import { VoiceConnectionStatus, entersState } from '@discordjs/voice';
 import { refreshNowPlaying, retireNowPlaying } from './nowPlaying';
 
 /**
@@ -114,9 +114,29 @@ function connectVoice(manager: any, guildId: string, queue: MusicQueue, voiceCha
     if (queue.player) connection.subscribe(queue.player);
   });
 
-  connection.on(VoiceConnectionStatus.Disconnected, () => {
+  // Give a brief drop (region change, voice WS hiccup) a chance to reconnect by itself.
+  connection.on(VoiceConnectionStatus.Disconnected, async() => {
     Logger.info(`Voice connection disconnected in guild ${guildId}`);
-    manager.deleteQueue(guildId);
+    try {
+      await Promise.race([
+        entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
+        entersState(connection, VoiceConnectionStatus.Connecting, 5_000),
+      ]);
+    } catch {
+      if (connection.state.status !== VoiceConnectionStatus.Destroyed) connection.destroy();
+    }
+  });
+
+  // Also reached without Disconnected when the gateway drops (network loss destroys
+  // the adapter). Keep the queue but drop the dead connection so /play rejoins.
+  connection.on(VoiceConnectionStatus.Destroyed, () => {
+    if (queue.connection !== connection) return;
+    Logger.info(`Voice connection destroyed in guild ${guildId}, queue preserved`);
+    queue.connection = null;
+    queue.stopped = true;
+    queue.playing = false;
+    queue.player?.stop();
+    void retireNowPlaying(queue);
   });
 }
 
