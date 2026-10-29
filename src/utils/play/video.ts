@@ -43,8 +43,9 @@ export async function handleSingleVideo(
   };
 
   // Get or create queue
+  // No connection after an auto-disconnect: createQueue rejoins the kept queue.
   let queue = musicManager.getQueue(interaction.guild.id);
-  if (!queue) {
+  if (!queue?.connection) {
     if (!interaction.channel) {
       await interaction.editReply({
         content: '❌ Could not access the text channel!',

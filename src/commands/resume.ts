@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, CommandInteraction } from 'discord.js';
-import { joinVoiceChannel } from '@discordjs/voice';
 import { Command } from '@/types';
 import { musicManager } from '@/utils/musicManager';
 import { Logger } from '@/utils/logger';
@@ -88,14 +87,11 @@ const command: Command = {
         );
         if (!hasPermissions) return;
 
-        const connection = joinVoiceChannel({
-          channelId: voiceChannel.id,
-          guildId: interaction.guild.id,
-          adapterCreator: interaction.guild.voiceAdapterCreator,
-        });
-
-        queue.connection = connection;
-        connection.subscribe(queue.player);
+        await musicManager.createQueue(
+          interaction.guild.id,
+          voiceChannel,
+          interaction.channel as unknown as import('@/types/music').MinimalTextChannel,
+        );
 
         Logger.info(`Reconnected to voice channel ${voiceChannel.name} for resume in guild ${interaction.guild.id}`);
       } catch (error) {

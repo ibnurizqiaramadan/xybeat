@@ -22,13 +22,12 @@ import { refreshNowPlaying, retireNowPlaying } from './nowPlaying';
    * @return {Promise<MusicQueue>} The created queue.
    */
 export async function createQueue(manager: any, guildId: string, voiceChannel: VoiceBasedChannel, textChannel: MusicQueue['textChannel']): Promise<MusicQueue> {
-  const connection = joinVoiceChannel({
-    channelId: voiceChannel.id,
-    guildId: guildId,
-    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
-    selfDeaf: true,
-    selfMute: false,
-  });
+  // Auto-disconnected queues stay in memory: rejoin and keep their songs.
+  const existing: MusicQueue | undefined = manager.queues.get(guildId);
+  if (existing) {
+    if (!existing.connection) connectVoice(manager, guildId, existing, voiceChannel);
+    return existing;
+  }
 
   const player = createAudioPlayer();
 
@@ -38,7 +37,7 @@ export async function createQueue(manager: any, guildId: string, voiceChannel: V
   const queue: MusicQueue = {
     textChannel,
     voiceChannel,
-    connection,
+    connection: null,
     songs: existingSongs,
     volume: 100,
     playing: false,
@@ -77,7 +76,7 @@ export async function createQueue(manager: any, guildId: string, voiceChannel: V
     }
 
     // Clear current playing state when song ends
-    await redisManager.deletePlayingState(guildId, voiceChannel.id);
+    await redisManager.deletePlayingState(guildId, queue.voiceChannel.id);
 
     manager.playNext(guildId);
   });
@@ -87,19 +86,38 @@ export async function createQueue(manager: any, guildId: string, voiceChannel: V
     manager.playNext(guildId);
   });
 
-  // Handle connection events
+  connectVoice(manager, guildId, queue, voiceChannel);
+  manager.queues.set(guildId, queue);
+  return queue;
+}
+
+
+/**
+   * Join a voice channel and route the queue's player into it.
+   * @param {string} guildId - The guild ID.
+   * @param {MusicQueue} queue - The queue to connect.
+   * @param {VoiceBasedChannel} voiceChannel - The voice channel to join.
+   */
+function connectVoice(manager: any, guildId: string, queue: MusicQueue, voiceChannel: VoiceBasedChannel): void {
+  const connection = joinVoiceChannel({
+    channelId: voiceChannel.id,
+    guildId: guildId,
+    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+    selfDeaf: true,
+    selfMute: false,
+  });
+  queue.connection = connection;
+  queue.voiceChannel = voiceChannel;
+
   connection.on(VoiceConnectionStatus.Ready, () => {
     Logger.info(`Voice connection ready in guild ${guildId}`);
-    connection.subscribe(player);
+    if (queue.player) connection.subscribe(queue.player);
   });
 
   connection.on(VoiceConnectionStatus.Disconnected, () => {
     Logger.info(`Voice connection disconnected in guild ${guildId}`);
     manager.deleteQueue(guildId);
   });
-
-  manager.queues.set(guildId, queue);
-  return queue;
 }
 
 
@@ -153,9 +171,8 @@ export async function addSong(manager: any, guildId: string, song: Song): Promis
   manager.triggerBackgroundDownloads(guildId);
 
   if (!queue.playing && (queue.songs.length === 1 || queue.stopped)) {
-    // Try to resume from crash first
-    const resumed = await manager.resumeFromCrash(guildId);
-    if (!resumed) {
+    // A stopped queue restarts from its head; crash recovery would revive the stopped song.
+    if (queue.stopped || !(await manager.resumeFromCrash(guildId))) {
       await manager.playNext(guildId);
     }
   } else {
@@ -183,9 +200,8 @@ export async function addSongs(manager: any, guildId: string, songs: Song[]): Pr
   manager.triggerBackgroundDownloads(guildId);
 
   if (!queue.playing && (wasEmpty || queue.stopped) && queue.songs.length > 0) {
-    // Try to resume from crash first
-    const resumed = await manager.resumeFromCrash(guildId);
-    if (!resumed) {
+    // A stopped queue restarts from its head; crash recovery would revive the stopped song.
+    if (queue.stopped || !(await manager.resumeFromCrash(guildId))) {
       await manager.playNext(guildId);
     }
   } else {

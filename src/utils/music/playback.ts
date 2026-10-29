@@ -247,11 +247,14 @@ export async function stop(manager: any, guildId: string): Promise<void> {
 export async function disconnectVoice(manager: any, guildId: string): Promise<void> {
   const queue = manager.getQueue(guildId);
   if (queue?.connection) {
-    // Pause any playing music
-    if (queue.playing && queue.player) {
-      queue.player.pause();
+    // Stop rather than pause: /play starts fresh, and /resume continues the song
+    // from the Redis playing state, which the Idle handler leaves alone when stopped.
+    if (queue.player) {
+      queue.stopped = true;
+      queue.player.stop();
       queue.playing = false;
     }
+    await retireNowPlaying(queue);
 
     // Disconnect from voice
     queue.connection.destroy();
