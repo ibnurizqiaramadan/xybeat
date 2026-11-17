@@ -1,19 +1,22 @@
 # XyBeat 🎵
 
-A powerful Discord music bot built with TypeScript and discord.js v14, featuring advanced YouTube integration and real-time download progress tracking.
+A powerful Discord music bot built with TypeScript and discord.js v14, featuring YouTube playback that streams instantly and caches songs in the background.
 
 ## 🎵 Music-First Features
 
 ### 🚀 Core Music Engine
 
 - 🎶 **Native yt-dlp Integration** - Direct binary usage for maximum reliability and quality
-- 📊 **Real-Time Progress Tracking** - Live download progress with visual indicators
+- ⚡ **Instant Streaming** - Uncached songs stream right away while the MP3 is downloaded in the background
 - 💾 **Smart MP3 Caching** - Instant playback for previously downloaded songs
+- 📻 **Radio Autoplay** - Keeps playing songs from the YouTube Mix of the last track when the queue ends
+- 🎛️ **Now Playing Controls** - Pause/Resume, Skip, Stop and Radio buttons on the Now Playing message
+- 📌 **24/7 Mode** - `/stay` keeps the bot in voice even when the channel is empty
 - 🔍 **Advanced YouTube Search** - Search by song name, artist, or paste any YouTube URL
 - 📋 **Comprehensive Playlist Support** - Handle YouTube playlists of any size, mixes, and radio stations
 - ⏯️ **Full Playback Controls** - Play, pause, resume, skip, stop, and queue management
 - 📄 **Interactive Queue Management** - Paginated display with navigation buttons
-- 🎛️ **Voice Channel Integration** - Smart auto-join/leave with optimal audio quality
+- 🎛️ **Voice Channel Integration** - Auto-join, auto-pause when alone, auto-leave after 5 minutes, queue kept after network loss
 - 🔄 **Intelligent Fallbacks** - Graceful handling of private/restricted content
 - 🎯 **Format Optimization** - Uses best available audio formats with MP3 conversion
 
@@ -23,18 +26,18 @@ A powerful Discord music bot built with TypeScript and discord.js v14, featuring
 - ⚡ **Discord.js v14** - Latest Discord API features and performance optimizations
 - 🎯 **Slash Commands** - Modern Discord command interface
 - 📁 **Modular Architecture** - Clean, maintainable, and extensible codebase
-- 🔧 **Hot Reload Development** - Fast iteration during development
+- 🔧 **Hot Reload Development** - Fast iteration with `npm run watch`
 - 🎨 **Rich Embeds** - Beautiful and informative Discord message displays
 - 🛡️ **Robust Error Handling** - Comprehensive logging and graceful failure recovery
-- 📊 **Performance Monitoring** - Built-in statistics and health monitoring
+- 📊 **Monitoring** - `/ping` for latency, `/download-stats` for background download status
 
 ## Setup
 
 ### Prerequisites
 
-- Node.js 16.11.0 or higher
+- Node.js 22.12.0 or higher (required by `@discordjs/voice`)
 - A Discord application and bot token
-- **yt-dlp** binary installed (`/snap/bin/yt-dlp`)
+- **yt-dlp** binary installed (default `/snap/bin/yt-dlp`, override with `YTDLP_BIN`)
 - **FFmpeg** binary installed (`/usr/bin/ffmpeg`)
 - **Redis server** (optional) - For persistent queue storage across bot restarts
 
@@ -97,14 +100,19 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
    REDIS_PASSWORD=
    REDIS_DB=0
    REDIS_KEY_PREFIX=xybeat:
+
+   # yt-dlp (Optional)
+   YTDLP_PROXY=           # e.g. socks5://127.0.0.1:40000 (Cloudflare WARP)
+   YTDLP_BIN=             # default /snap/bin/yt-dlp; official yt-dlp_linux bundles the EJS solver
    ```
 
    **Redis Queue Persistence (Optional):**
 
    - Set `REDIS_ENABLED=true` to enable persistent queue storage
-   - Queues are saved by voice channel and persist across bot restarts
-   - **Crash Recovery**: Currently playing song state is saved and resumed after crashes
-   - **Auto-cleanup**: Playing states expire after 30 minutes of inactivity
+   - Queues (songs, autoplay, history) are saved per voice channel and expire after 1 hour
+   - **Crash Recovery**: The current song and its position are saved every 5 seconds; on startup the bot rejoins and resumes from that position
+   - **Auto-cleanup**: Playing states expire after 30 minutes and are not resumed when older
+   - **24/7 Mode**: `/stay` is saved without expiry; the bot rejoins those voice channels on startup
    - Configure Redis connection details as needed
 
 ### Getting Discord Bot Credentials
@@ -162,8 +170,8 @@ npm run deploy-commands
 | **🎵 `/play`**    | **Play music from YouTube** - Supports URLs, playlists, search queries, and YouTube mixes   | `/play query: Bohemian Rhapsody`<br>`/play query: https://youtube.com/watch?v=...`<br>`/play query: https://youtube.com/playlist?list=...` |
 | **🔍 `/search`**  | **Search for a song** - Search and choose from multiple results                             | `/search query: Bohemian Rhapsody`                                                                                                         |
 | **📋 `/queue`**   | **View music queue** - Interactive paginated display with navigation controls               | Shows current queue with song details and position                                                                                         |
-| **♾️ `/autoplay`**| **Toggle autoplay mode** - Plays related songs automatically when queue ends                | Enables or disables continuous music playback                                                                                              |
-| **📌 `/stay`**    | **Toggle 24/7 mode** - Stay in voice even when the channel is empty                          | Skips auto-pause and auto-disconnect; joins your channel if not connected                                                                 |
+| **📻 `/autoplay`**| **Toggle radio mode** - Keeps playing a YouTube Mix of similar songs when the queue ends     | Same as the **Radio** button on the Now Playing message                                                                                    |
+| **📌 `/stay`**    | **Toggle 24/7 mode** - Stay in voice even when the channel is empty                         | Skips auto-pause and auto-disconnect, joins your channel if needed, survives restarts (Redis)                                              |
 | **⏸️ `/pause`**   | **Pause playback** - Temporarily stop the current song                                      | Pauses the currently playing track                                                                                                         |
 | **▶️ `/resume`**  | **Resume playback or recover from crash** - Continue paused song or restore crashed session | Resumes paused track or recovers from bot crash                                                                                            |
 | **⏭️ `/skip`**    | **Skip to next song** - Move to the next track in queue                                     | Skips current song and plays next                                                                                                          |
@@ -176,9 +184,9 @@ npm run deploy-commands
 
 | Command         | Action             | Queue            | Voice Connection       | Redis Data     | Use Case                     |
 | --------------- | ------------------ | ---------------- | ---------------------- | -------------- | ---------------------------- |
-| **🛑 `/stop`**  | Stop playback only | ✅ **Preserved** | ✅ **Stays connected** | ✅ **Kept**    | Temporary pause, resumable   |
-| **🗑️ `/clear`** | Clear queue only   | ❌ **Cleared**   | ✅ **Stays connected** | ❌ **Removed** | Fresh start, keep connection |
-| **👋 `/leave`** | Full disconnect    | ❌ **Cleared**   | ❌ **Disconnected**    | ❌ **Removed** | Complete exit from voice     |
+| **🛑 `/stop`**  | Stop playback only | ✅ **Preserved** | ✅ **Stays connected** | ⚠️ **Queue kept, playing state removed** | Stop now, `/play` later      |
+| **🗑️ `/clear`** | Clear queue only   | ❌ **Cleared**   | ✅ **Stays connected** | ❌ **Removed**                           | Fresh start, keep connection |
+| **👋 `/leave`** | Full disconnect    | ❌ **Cleared**   | ❌ **Disconnected**    | ❌ **Removed** (also turns off `/stay`)  | Complete exit from voice     |
 
 ### 🛠️ Utility Commands
 
@@ -198,27 +206,26 @@ npm run deploy-commands
 | -------------------------- | ----------------- | -------------------------------------------- |
 | **🔗 Direct YouTube URLs** | ✅ Full           | Single video links with instant recognition  |
 | **📋 YouTube Playlists**   | ✅ Full           | Complete playlists with all available videos |
-| **📻 YouTube Mixes/Radio** | ✅ Smart Fallback | Automatically extracts the current video     |
+| **📻 YouTube Mixes/Radio** | ✅ Smart Fallback | Loads the mix, or just the current video if the mix can't be read |
 | **🔍 Search Queries**      | ✅ Full           | Search by song name, artist, or keywords     |
 | **🔀 Mixed URLs**          | ✅ Smart          | Videos with playlist parameters              |
 
 ### 📊 Queue Management
 
 - **📄 Paginated Display** - Shows 10 songs per page with interactive navigation
-- **🔄 Real-time Updates** - Queue updates automatically as songs are added/removed
 - **👤 User Control** - Only command user can navigate queue pages
 - **⏰ Auto-timeout** - Navigation buttons disable after 5 minutes for performance
-- **📈 Smart Progress** - Real-time download progress with visual indicators
 
 ### 🎧 Audio Processing Pipeline
 
-- **🎯 Format 18 Selection** - Optimal quality/compatibility balance
-- **📊 Real-time Progress** - Live download tracking with percentage and speed
-- **🔄 MP3 Conversion** - All audio standardized to MP3 format via FFmpeg
+- **🎯 Format Selection** - yt-dlp picks `bestaudio`, falling back to format 18, then `best`
+- **⚡ Instant Streaming** - Uncached songs stream through yt-dlp → FFmpeg without waiting for the download
+- **🩹 Stream Recovery** - If the stream dies mid-song, playback resumes from the same position (up to 3 times)
+- **🔄 MP3 Conversion** - Background downloads are converted to MP3 via FFmpeg
 - **💾 Intelligent Caching** - Files stored in `~/music-bot/mp3/` directory
 - **⚡ Instant Replay** - Cached files play immediately on repeat
-- **🔄 Progress Cleanup** - Progress indicators automatically disappear when complete
-- **🎛️ Smart Voice Management** - Auto-pause when alone, auto-disconnect after 5 minutes
+- **🎛️ Smart Voice Management** - Auto-pause when alone, auto-disconnect after 5 minutes (disabled by `/stay` 24/7 mode)
+- **🔌 Voice Recovery** - Short voice drops reconnect by themselves; after a network loss the queue is kept and `/play` rejoins (24/7 mode rejoins and resumes on its own)
 - **🎛️ Multiple Disconnect Options** - Stop (preserve queue), Clear (remove songs), Leave (full disconnect)
 
 ### 🚀 Background Download System
@@ -228,7 +235,7 @@ npm run deploy-commands
 - **⚙️ Concurrent Limits** - Maximum 2 downloads per server, 5 globally to prevent system overload
 - **🔄 Automatic Retry** - Failed downloads retry with exponential backoff up to 3 times
 - **💾 Cache Integration** - Automatically skips songs already downloaded, optimizes bandwidth
-- **📊 Real-time Monitoring** - Track download progress and statistics with `/download-stats`
+- **📊 Monitoring** - See queued, active and per-server downloads with `/download-stats`
 - **🧹 Smart Cleanup** - Clears download queue when music queue is cleared or bot leaves voice
 - **🔀 Shuffle Support** - Reorders background downloads when queue is shuffled for optimal experience
 
@@ -236,12 +243,14 @@ npm run deploy-commands
 
 ### Scripts
 
-- `npm run dev` - Start bot in development mode with hot reload
+- `npm run dev` - Start bot in development mode (ts-node)
+- `npm run watch` - Start bot with hot reload (nodemon)
 - `npm run build` - Build TypeScript to JavaScript
 - `npm start` - Start the built bot
-- `npm run deploy-commands` - Deploy slash commands to Discord
-- `npm run lint` - Run ESLint and fix issues
-- `npm run format` - Format and fix code with ESLint
+- `npm run deploy-commands` - Deploy slash commands (to `GUILD_ID` if set, otherwise globally)
+- `npm run deploy-commands:global` - Deploy slash commands globally
+- `npm run lint` - Run ESLint
+- `npm run format` - Run ESLint with auto-fix
 
 ### Project Structure
 
@@ -260,8 +269,7 @@ src/
 
 1. Create a new file in `src/commands/` following the existing pattern
 2. Export a command object with `data` and `execute` properties
-3. Run `npm run deploy-commands` to register the new command
-4. Restart the bot
+3. Restart the bot (commands are registered on startup; `npm run deploy-commands` also works without restarting)
 
 ### Adding New Events
 
@@ -356,9 +364,10 @@ If you encounter issues with the music player:
 
 #### Audio Quality Issues
 
-- **Format 18**: Used for optimal quality/compatibility balance
-- **MP3 conversion**: All audio standardized to MP3 format
+- **Format**: `bestaudio`, falling back to format 18, then `best`
+- **MP3 conversion**: Cached files are stored as MP3; uncached songs are streamed directly
 - **Local caching**: Files stored locally for faster subsequent access
+- **YouTube blocks / bot checks**: Set `YTDLP_PROXY` (e.g. Cloudflare WARP) or point `YTDLP_BIN` at the official `yt-dlp_linux`
 
 ## 🚀 What Makes XyBeat Special
 
@@ -367,9 +376,9 @@ If you encounter issues with the music player:
 XyBeat was built from the ground up as a dedicated music bot, focusing on:
 
 - **🎯 Reliability** - Native yt-dlp integration ensures consistent downloads
-- **⚡ Performance** - Smart caching and progress tracking for optimal user experience
+- **⚡ Performance** - Instant streaming plus background caching for optimal user experience
 - **🔄 Flexibility** - Handles any YouTube content: videos, playlists, mixes, and searches
-- **🎨 User Experience** - Beautiful progress indicators and intuitive controls
+- **🎨 User Experience** - Now Playing message with button controls
 - **🛡️ Robustness** - Graceful fallbacks for private/restricted content
 
 ### 🏗️ Technical Architecture
@@ -377,8 +386,8 @@ XyBeat was built from the ground up as a dedicated music bot, focusing on:
 XyBeat uses a sophisticated multi-layer approach:
 
 1. **🎶 yt-dlp Engine** - Direct binary integration for maximum compatibility
-2. **📊 Progress Pipeline** - Real-time download tracking with visual feedback
-3. **🔄 FFmpeg Processing** - High-quality audio conversion (format 18 → MP3)
+2. **⚡ Streaming Pipeline** - yt-dlp → FFmpeg → Discord voice, no wait for uncached songs
+3. **🔄 FFmpeg Processing** - Audio conversion to MP3 for the cache
 4. **💾 Smart Caching** - Local file system storage for instant replay
 5. **🎛️ Discord Integration** - Optimized voice channel handling and embed displays
 6. **🔧 Auto-Management** - Automatic command registration and resource cleanup
@@ -387,19 +396,21 @@ XyBeat uses a sophisticated multi-layer approach:
 
 - ✅ **🚀 Background Downloading** - Pre-downloads queued songs for instant playback, no more waiting!
 - ✅ **⚡ Smart Download Queue** - Prioritizes next songs in queue with concurrent downloading (2-3 songs per server)
-- ✅ **📊 Download Statistics** - Monitor background download progress with `/download-stats` command
+- ✅ **📊 Download Statistics** - Monitor background download queue and activity with `/download-stats` command
 - ✅ **🎯 Intelligent Caching** - Automatically skips already downloaded songs, optimizes storage usage
-- ✅ **Real-Time Progress Tracking** - Live download progress with visual indicators
+- ✅ **Instant Streaming** - Uncached songs stream immediately instead of waiting for the download
+- ✅ **Radio Autoplay** - Continues with a YouTube Mix of similar songs when the queue ends
+- ✅ **Now Playing Controls** - Pause/Resume, Skip, Stop and Radio buttons
 - ✅ **Auto Command Registration** - Commands automatically deployed on bot startup
-- ✅ **Progress Cleanup** - Progress embeds automatically disappear when complete
 - ✅ **Enhanced Playlist Support** - Smart fallbacks for YouTube mixes and radio, unlimited playlist size
 - ✅ **Redis Queue Persistence** - Optional queue storage across bot restarts by voice channel
-- ✅ **Crash Recovery System** - Resume currently playing song after bot crashes/restarts
+- ✅ **Crash Recovery System** - Resumes the current song at the same position after bot crashes/restarts
 - ✅ **Separated Stop/Clear Commands** - Stop preserves queue, clear removes all songs
 - ✅ **Smart Auto-Pause & Leave** - Automatically pause when alone, disconnect after 5min timeout
-- ✅ **Queue Shuffle** - Randomize song order with Fisher-Yates algorithm, preserves currently playing
+- ✅ **24/7 Mode** - `/stay` keeps the bot in voice even when empty, persisted in Redis across restarts
+- ✅ **Queue Shuffle** - Randomize upcoming songs with Fisher-Yates algorithm (the playing song is untouched)
 - ✅ **Complete Leave Command** - Full disconnect with queue clearing and data cleanup
-- ✅ **Smart Voice Reconnection** - Automatic reconnection when resuming after auto-disconnect
+- ✅ **Smart Voice Reconnection** - `/play` or `/resume` rejoins after auto-disconnect or network loss, queue kept
 - ✅ **Dynamic Bot Presence** - Shows server count and helpful status information
 - ✅ **Discord.js v14** - Latest Discord API features and optimizations
 - ✅ **TypeScript Excellence** - Full type safety and modern development practices
