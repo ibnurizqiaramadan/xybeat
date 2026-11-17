@@ -34,6 +34,8 @@ const event: BotEvent = {
     Logger.debug(`Voice state update in ${botVoiceChannel.name}: ${nonBotMembers.size} non-bot members`);
 
     if (nonBotMembers.size === 0) {
+      if (queue.stay) return; // 24/7 mode: keep playing and stay connected
+
       // No users left in voice channel
       Logger.info(`No users left in voice channel ${botVoiceChannel.name}, auto-pausing and scheduling disconnect`);
 
@@ -54,7 +56,8 @@ const event: BotEvent = {
       // Set a timeout to disconnect if no one joins back within 5 minutes
       setTimeout(async() => {
         // Check if voice channel is still empty using musicManager method
-        if (musicManager.isVoiceChannelEmpty(oldState.guild.id)) {
+        // /stay may have been enabled after this timer was scheduled.
+        if (musicManager.isVoiceChannelEmpty(oldState.guild.id) && !musicManager.getQueue(oldState.guild.id)?.stay) {
           Logger.info(`Voice channel still empty after timeout, disconnecting bot from guild ${oldState.guild.id}`);
 
           // Get current queue (might have changed)

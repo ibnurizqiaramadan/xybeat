@@ -59,3 +59,33 @@ export async function deletePlayingState(guildId: string, voiceChannelId: string
     Logger.error('Failed to delete playing state from Redis:', error as Error);
   }
 }
+
+export interface StayEntry {
+  voiceChannelId: string;
+  textChannelId: string;
+}
+
+// 24/7 guilds live in one hash with no TTL: they must survive restarts indefinitely.
+export async function setStay(guildId: string, entry: StayEntry | null): Promise<void> {
+  if (!isRedisEnabled()) return;
+
+  try {
+    const key = `${keyPrefix}stay`;
+    if (entry) await redisClient!.hSet(key, guildId, JSON.stringify(entry));
+    else await redisClient!.hDel(key, guildId);
+  } catch (error) {
+    Logger.error('Failed to save stay mode to Redis:', error as Error);
+  }
+}
+
+export async function getAllStay(): Promise<Record<string, StayEntry>> {
+  if (!isRedisEnabled()) return {};
+
+  try {
+    const raw = await redisClient!.hGetAll(`${keyPrefix}stay`);
+    return Object.fromEntries(Object.entries(raw).map(([guildId, json]) => [guildId, JSON.parse(json) as StayEntry]));
+  } catch (error) {
+    Logger.error('Failed to load stay mode from Redis:', error as Error);
+    return {};
+  }
+}

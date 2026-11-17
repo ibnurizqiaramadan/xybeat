@@ -312,6 +312,7 @@ export async function leaveVoice(manager: any, guildId: string): Promise<void> {
   // Clear all Redis data for this queue
   await redisManager.deleteQueue(guildId, queue.voiceChannel.id);
   await redisManager.deletePlayingState(guildId, queue.voiceChannel.id);
+  await redisManager.setStay(guildId, null);
 
   // Remove the queue from memory
   manager.queues.delete(guildId);

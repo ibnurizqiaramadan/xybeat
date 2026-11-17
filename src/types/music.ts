@@ -45,6 +45,8 @@ export interface MusicQueue {
   nowPlayingMessage?: NowPlayingMessage | undefined;
   /** Set by stop/clear/leave so the Idle handler doesn't advance to the next song. */
   stopped?: boolean;
+  /** 24/7 mode: skip auto-pause and auto-disconnect when the voice channel empties. */
+  stay?: boolean;
 }
 
 export interface NowPlayingMessage {

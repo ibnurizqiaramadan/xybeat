@@ -279,4 +279,22 @@ export async function autoResumeAll(manager: any, client: any): Promise<void> {
       Logger.error(`Failed to auto-resume guild ${guildId}:`, error as Error);
     }
   }
+
+  // Rejoin 24/7 (/stay) guilds, even with nothing playing.
+  const stays = await redisManager.getAllStay();
+  for (const [guildId, { voiceChannelId, textChannelId }] of Object.entries(stays)) {
+    try {
+      const voiceChannel = await client.channels.fetch(voiceChannelId).catch(() => null);
+      const textChannel = await client.channels.fetch(textChannelId).catch(() => null);
+      if (!voiceChannel?.isVoiceBased() || !textChannel) {
+        Logger.warn(`Cannot restore 24/7 mode in guild ${guildId}: channels not found or invalid`);
+        continue;
+      }
+      const queue = await manager.createQueue(guildId, voiceChannel, textChannel as unknown as any);
+      queue.stay = true;
+      Logger.info(`Restored 24/7 mode in guild ${guildId}`);
+    } catch (error) {
+      Logger.error(`Failed to restore 24/7 mode in guild ${guildId}:`, error as Error);
+    }
+  }
 }
