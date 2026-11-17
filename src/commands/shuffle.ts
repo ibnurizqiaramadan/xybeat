@@ -44,11 +44,12 @@ const command: Command = {
         return;
       }
 
-      const currentSong = queue.songs[0];
+      // The playing song lives in lastSong; queue.songs holds only upcoming songs.
+      const currentSong = queue.lastSong;
       const responseContent = (queue.playing && currentSong) ?
         `🔀 **Shuffled ${shuffledCount} songs!**\n\n` +
           `🎵 **Currently Playing:** ${currentSong.title}\n` +
-          `📋 **Queue:** ${queue.songs.length - 1} songs shuffled and ready` :
+          `📋 **Queue:** ${queue.songs.length} upcoming songs shuffled` :
         `🔀 **Shuffled ${shuffledCount} songs!**\n\n` +
           `📋 **Queue:** All ${queue.songs.length} songs have been shuffled`;
 

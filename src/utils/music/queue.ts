@@ -11,7 +11,7 @@ import { joinVoiceChannel, createAudioPlayer, AudioPlayerStatus } from '@discord
 
 
 import { VoiceBasedChannel } from 'discord.js';
-import { VoiceConnectionStatus, entersState } from '@discordjs/voice';
+import { VoiceConnectionStatus, VoiceConnectionDisconnectReason, entersState } from '@discordjs/voice';
 import { refreshNowPlaying, retireNowPlaying } from './nowPlaying';
 
 /**
@@ -114,9 +114,13 @@ function connectVoice(manager: any, guildId: string, queue: MusicQueue, voiceCha
     if (queue.player) connection.subscribe(queue.player);
   });
 
+  // Close code 4014: kicked or moved. If it doesn't reconnect, 24/7 mode must not fight the kick.
+  let kicked = false;
+
   // Give a brief drop (region change, voice WS hiccup) a chance to reconnect by itself.
-  connection.on(VoiceConnectionStatus.Disconnected, async() => {
+  connection.on(VoiceConnectionStatus.Disconnected, async(_, newState) => {
     Logger.info(`Voice connection disconnected in guild ${guildId}`);
+    kicked = newState.reason === VoiceConnectionDisconnectReason.WebSocketClose && newState.closeCode === 4014;
     try {
       await Promise.race([
         entersState(connection, VoiceConnectionStatus.Signalling, 5_000),
@@ -137,6 +141,19 @@ function connectVoice(manager: any, guildId: string, queue: MusicQueue, voiceCha
     queue.playing = false;
     queue.player?.stop();
     void retireNowPlaying(queue);
+
+    // 24/7 mode: rejoin after network loss. A failed rejoin (gateway still down) ends
+    // up Destroyed again, so this retries every few seconds until the network is back.
+    if (queue.stay && !kicked) {
+      setTimeout(() => {
+        if (manager.queues.get(guildId) !== queue || !queue.stay || queue.connection) return;
+        Logger.info(`24/7 mode: rejoining voice in guild ${guildId}`);
+        connectVoice(manager, guildId, queue, queue.voiceChannel);
+        // Picks the song back up from its saved position, if one was playing.
+        manager.resumeFromCrash(guildId).catch((err: Error) =>
+          Logger.error(`24/7 mode: failed to resume playback in guild ${guildId}`, err));
+      }, 5_000);
+    }
   });
 }
 
@@ -294,10 +311,8 @@ export async function shuffleQueue(manager: any, guildId: string): Promise<numbe
     return 0; // No queue or only one song, nothing to shuffle
   }
 
-  // If music is currently playing, we want to keep the current song at position 0
-  // and shuffle only the remaining songs
-  const startIndex = queue.playing ? 1 : 0;
-  const songsToShuffle = queue.songs.slice(startIndex);
+  // The playing song is already shifted out of queue.songs, so every entry is upcoming.
+  const songsToShuffle = queue.songs.slice();
 
   if (songsToShuffle.length <= 1) {
     return 0; // Nothing to shuffle
@@ -314,14 +329,7 @@ export async function shuffleQueue(manager: any, guildId: string): Promise<numbe
     }
   }
 
-  // Reconstruct the queue
-  if (queue.playing && queue.songs[0]) {
-    // Keep current playing song at front, shuffle the rest
-    queue.songs = [queue.songs[0], ...songsToShuffle];
-  } else {
-    // Shuffle all songs
-    queue.songs = songsToShuffle;
-  }
+  queue.songs = songsToShuffle;
 
   // Save shuffled queue to Redis
   await manager.saveQueue(guildId);

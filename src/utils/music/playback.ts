@@ -299,7 +299,8 @@ export async function leaveVoice(manager: any, guildId: string): Promise<void> {
     queue.player.stop();
   }
 
-  // Disconnect from voice channel
+  // Disconnect from voice channel (turn off 24/7 first so it doesn't rejoin)
+  queue.stay = false;
   if (queue.connection) {
     queue.connection.destroy();
   }
