@@ -261,7 +261,7 @@ export class BackgroundDownloaderImpl {
    * @return {boolean} True if cached
    */
   private isCached(videoId: string): boolean {
-    const musicDir = join(homedir(), 'music-bot', 'mp3');
+    const musicDir = process.env.MUSIC_DIR || join(homedir(), 'music-bot', 'mp3');
     const outputPath = join(musicDir, `${videoId}.mp3`);
     return existsSync(outputPath);
   }

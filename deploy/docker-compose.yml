@@ -1,0 +1,15 @@
+services:
+  xybeat:
+    image: xybeat:latest
+    container_name: xybeat
+    restart: unless-stopped
+    init: true
+    network_mode: host
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - MUSIC_DIR=/home/ubuntu/music-bot/mp3
+      - YTDLP_BIN=/usr/local/bin/yt-dlp
+    volumes:
+      - /home/ubuntu/music-bot/mp3:/home/ubuntu/music-bot/mp3
+      - /home/ubuntu/music-bot/mp3:/music-bot/mp3

@@ -44,12 +44,20 @@ export function parseDownloadProgress(data: string): DownloadProgress | null {
 }
 
 /**
+ * Directory for cached music files.
+ * @return {string} Music directory path
+ */
+export function getMusicDir(): string {
+  return process.env.MUSIC_DIR || join(homedir(), 'music-bot', 'mp3');
+}
+
+/**
  * Path of the cached MP3 for a video.
  * @param {string} url - YouTube video URL
  * @return {string} Cache file path
  */
 export function cachedMp3Path(url: string): string {
-  return join(homedir(), 'music-bot', 'mp3', `${extractVideoId(url)}.mp3`);
+  return join(getMusicDir(), `${extractVideoId(url)}.mp3`);
 }
 
 /**

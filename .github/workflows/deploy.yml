@@ -1,0 +1,62 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+      IMAGE: ${{ vars.IMAGE }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build image
+        run: docker build -t "$IMAGE" .
+
+      - name: Ship image
+        run: |
+          docker save "$IMAGE" | gzip \
+            | ssh -o StrictHostKeyChecking=accept-new "$DEPLOY_HOST" 'gunzip | docker load'
+
+      - name: Ship compose + env
+        env:
+          APP_ENV: ${{ secrets.APP_ENV }}
+        run: |
+          if [ -z "$APP_ENV" ]; then
+            echo "::error::secret APP_ENV kosong. Jalankan: gh secret set APP_ENV < .env"
+            exit 1
+          fi
+          ssh "$DEPLOY_HOST" "mkdir -p $DEPLOY_DIR"
+          scp deploy/docker-compose.yml "$DEPLOY_HOST:$DEPLOY_DIR/docker-compose.yml"
+          printf '%s\n' "$APP_ENV" | ssh "$DEPLOY_HOST" "cat > $DEPLOY_DIR/.env && chmod 600 $DEPLOY_DIR/.env"
+
+      - name: Stop old PM2 process if running
+        run: |
+          ssh "$DEPLOY_HOST" '
+            export PATH=/home/ubuntu/.local/share/nvm/v22.20.0/bin:$PATH
+            if which pm2 >/dev/null 2>&1 && pm2 describe xybeat >/dev/null 2>&1; then
+              echo "Stopping and deleting old PM2 process xybeat..."
+              pm2 stop xybeat || true
+              pm2 delete xybeat || true
+              pm2 save || true
+            fi
+          '
+
+      - name: Up
+        run: |
+          ssh "$DEPLOY_HOST" "cd $DEPLOY_DIR && docker compose up -d --remove-orphans && docker image prune -f"
+          docker image prune -f
+
+      - name: Status
+        run: |
+          sleep 10
+          ssh "$DEPLOY_HOST" "docker ps --filter name=xybeat --format '{{.Names}} {{.Status}}' && docker logs --tail 30 xybeat"
