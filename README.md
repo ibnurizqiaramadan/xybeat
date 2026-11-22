@@ -35,13 +35,43 @@ A powerful Discord music bot built with TypeScript and discord.js v14, featuring
 
 ### Prerequisites
 
-- Node.js 22.12.0 or higher (required by `@discordjs/voice`)
+- Node.js 22.12.0 or higher (or Docker)
 - A Discord application and bot token
-- **yt-dlp** binary installed (default `/snap/bin/yt-dlp`, override with `YTDLP_BIN`)
-- **FFmpeg** binary installed (`/usr/bin/ffmpeg`)
+- **yt-dlp** binary installed (default `/snap/bin/yt-dlp`, override with `YTDLP_BIN` or bundled in Docker)
+- **FFmpeg** binary installed (`/usr/bin/ffmpeg` or bundled in Docker)
 - **Redis server** (optional) - For persistent queue storage across bot restarts
 
-### System Dependencies
+### Deployment via Docker (Recommended)
+
+XyBeat includes a production-ready `Dockerfile` and `docker-compose.yml`.
+
+1. Prepare your `.env` file from `.env.example`:
+   ```bash
+   cp .env.example .env
+   # Edit with your DISCORD_TOKEN, CLIENT_ID, REDIS, etc.
+   ```
+
+2. Run with Docker Compose:
+   ```bash
+   docker compose up -d --build
+   ```
+
+3. View logs:
+   ```bash
+   docker logs -f xybeat
+   ```
+
+> **Note**: The Docker setup uses `network_mode: host` for minimal audio latency, optimal Discord UDP voice transmission, and seamless local Redis / proxy access. The MP3 directory can be mapped to a host folder (e.g., `~/music-bot/mp3`) and configured via `MUSIC_DIR`.
+
+### CI/CD Deployment (GitHub Actions)
+
+An automated deployment workflow (`.github/workflows/deploy.yml`) is included for self-hosted GitHub Actions runners:
+- Builds the production image inside Docker.
+- Ships the image to the target host over SSH without requiring an external image registry.
+- Deploys container using `docker compose` with zero-downtime recreation.
+- Managed via GitHub Repository Variables (`DEPLOY_HOST`, `DEPLOY_DIR`, `IMAGE`) and Secrets (`APP_ENV`).
+
+### Manual System Dependencies (Without Docker)
 
 For Ubuntu/Debian:
 
@@ -100,6 +130,9 @@ For other systems, please install yt-dlp, FFmpeg, and Redis according to your OS
    REDIS_PASSWORD=
    REDIS_DB=0
    REDIS_KEY_PREFIX=xybeat:
+
+   # Storage (Optional)
+   MUSIC_DIR=             # default ~/music-bot/mp3 (custom cache folder or Docker volume)
 
    # yt-dlp (Optional)
    YTDLP_PROXY=           # e.g. socks5://127.0.0.1:40000 (Cloudflare WARP)
