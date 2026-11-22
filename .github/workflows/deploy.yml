@@ -39,24 +39,12 @@ jobs:
           scp deploy/docker-compose.yml "$DEPLOY_HOST:$DEPLOY_DIR/docker-compose.yml"
           printf '%s\n' "$APP_ENV" | ssh "$DEPLOY_HOST" "cat > $DEPLOY_DIR/.env && chmod 600 $DEPLOY_DIR/.env"
 
-      - name: Stop old PM2 process if running
-        run: |
-          ssh "$DEPLOY_HOST" '
-            export PATH=/home/ubuntu/.local/share/nvm/v22.20.0/bin:$PATH
-            if which pm2 >/dev/null 2>&1 && pm2 describe xybeat >/dev/null 2>&1; then
-              echo "Stopping and deleting old PM2 process xybeat..."
-              pm2 stop xybeat || true
-              pm2 delete xybeat || true
-              pm2 save || true
-            fi
-          '
-
       - name: Up
         run: |
-          ssh "$DEPLOY_HOST" "cd $DEPLOY_DIR && docker compose up -d --remove-orphans && docker image prune -f"
+          ssh "$DEPLOY_HOST" "bash -c 'cd $DEPLOY_DIR && docker compose up -d --remove-orphans && docker image prune -f'"
           docker image prune -f
 
       - name: Status
         run: |
           sleep 10
-          ssh "$DEPLOY_HOST" "docker ps --filter name=xybeat --format '{{.Names}} {{.Status}}' && docker logs --tail 30 xybeat"
+          ssh "$DEPLOY_HOST" "bash -c 'docker ps --filter name=xybeat --format \"{{.Names}} {{.Status}}\" && docker logs --tail 30 xybeat'"
